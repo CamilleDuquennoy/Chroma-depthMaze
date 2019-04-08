@@ -31,19 +31,3 @@ class Ball
 
         ~Ball(){}
 };
-
-class Arguments
-{
-public:
-    sf::RenderWindow* window;
-    sf::Image* image;
-    Ball* ball;
-
-    Arguments(sf::RenderWindow* w, sf::Image* i, Ball* b)
-    {
-        window = w;
-        image = i;
-        ball = b;
-    }
-
-};

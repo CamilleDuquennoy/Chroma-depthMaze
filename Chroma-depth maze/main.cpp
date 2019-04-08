@@ -25,6 +25,7 @@ void loadMap (const string mapPath, Image &map)
 
 void buildSphereMap(Image pixelMap, MatrixXf &sphereMap)
 {
+    //TODO: have some average for z
     float zMax = 10.;
     cout << "Started loading zMap" << endl;
 
@@ -37,7 +38,6 @@ void buildSphereMap(Image pixelMap, MatrixXf &sphereMap)
         for (unsigned int j = 0; j < size.y; j++)
         {
             float z = -INFINITY;
-//            cout << "Getting the color of pixel " << i << "; " << j << endl;
             Color color = pixelMap.getPixel(i, j);
             float R = (float) color.r / 255.;
             float G = (float) color.g / 255.;
@@ -90,67 +90,68 @@ void makeFall(Ball &ball, const MatrixXf map)
     int y = j;
 
     // Get neighbour with lowest z
-    if (map(i-1, j-1) < z && i>0 && j >0)
+//    cout << map(i-1, j-1) << ";" << map(i-1, j) << ";" << map(i-1, j+1) << endl;
+//    cout << map(i, j-1) << ";" << map(i, j) << ";" << map(i, j+1) << endl;
+//    cout << map(i+1, j-1) << ";" << map(i+1, j) << ";" << map(i+1, j+1) << endl;
+    if (map(i-5, j-5) < z && i>4 && j>4)
     {
-        z = map(i-1, j-1);
-        x = i-1;
-        y = j-1;
+        z = map(i-5, j-5);
+        x = i-5;
+        y = j-5;
     }
 
-    if (map(i-1, j) < z && i >0)
+    if (map(i-5, j) <= z && i>4)
     {
-        z = map(i-1, j);
-        x = i-1;
+        z = map(i-5, j);
+        x = i-5;
         y = j;
     }
 
-    if (map(i-1, j+1) < z && i > 0 && j < map.cols() - 1)
+    if (map(i-5, j+5) <= z && i > 4 && j < map.cols() - 5)
     {
-        z = map(i-1, j+1);
-        x = i-1;
-        y = j+1;
+        z = map(i-5, j+5);
+        x = i-5;
+        y = j+5;
     }
 
-    if (map(i, j-1) < z && j > 0)
+    if (map(i, j-5) <= z && j > 4)
     {
-        z = map(i, j-1);
+        z = map(i, j-5);
         x = i;
-        y = j-1;
+        y = j-5;
     }
 
-    if (map(i, j+1) < z && j < map.cols() - 1)
+    if (map(i, j+5) <= z && j < map.cols() - 5)
     {
-        z = map(i, j+1);
+        z = map(i, j+5);
         x = i;
-        y = j+1;
+        y = j+5;
     }
 
-    if (map(i+1, j-1) < z && i < map.rows() - 1 && j > 0)
+    if (map(i+5, j-5) <= z && i < map.rows() - 5 && j > 4)
     {
-        z = map(i+1, j-1);
-        x = i+1;
-        y = j-1;
+        z = map(i+5, j-5);
+        x = i+5;
+        y = j-5;
     }
 
-    if (map(i+1, j) < z && i < map.rows() - 1)
+    if (map(i+5, j) <= z && i < map.rows() - 5)
     {
-        z = map(i+1, j);
-        x = i+1;
+        z = map(i+5, j);
+        x = i+5;
         y = j;
     }
 
-    if (map(i+1, j+1) < z && i < map.rows() - 1 && j < map.cols() - 1)
+    if (map(i+5, j+5) <= z && i < map.rows() - 5 && j < map.cols() - 5)
     {
-        z = map(i+1, j+1);
-        x = i+1;
-        y = j+1;
+        z = map(i+5, j+5);
+        x = i+5;
+        y = j+5;
     }
 
     ball.x = (float) x;
     ball.y = (float) y;
     ball.z = z;
-    cout << "Let\'s move the ball to :" << x << "; " << y << endl;
-    cout << "ball is located in " << ball.x << "; " << ball.y << endl;
 };
 
 void moveBall(Ball* ball)
@@ -168,22 +169,6 @@ void wrapMapToSphere(Image image)
     //TODO: the function, but later
 };
 
-void display(Arguments arg)
-{
-    RenderWindow* window = arg.window;
-    Image* image = arg.image;
-    Ball* ball = arg.ball;
-
-
-    //TODO: display map and ball on screen
-    wrapMapToSphere(*image);  //Only for Geo-cosmos
-
-    cout << "Ok2" << endl;
-    while(window->isOpen())
-    {
-    }
-};
-
 int main( int argc, char * argv[] )
 {
     RenderWindow window(VideoMode(1366, 768), "Chroma-depth maze"); //Need to config size for Geo-cosmos
@@ -191,7 +176,7 @@ int main( int argc, char * argv[] )
     loadMap(MAP_PATH, *chromaMap);
 
     MatrixXf zMap;
-    //TODO: create a good map with photoshop
+    //TODO: create a good map with photoshop (kinda finished)
 
     Sprite sprite;
     Texture texture;
@@ -203,18 +188,10 @@ int main( int argc, char * argv[] )
     pawn.setOutlineThickness(10.f);
     pawn.setOutlineColor(sf::Color::White);
 
-    cout << "OK" << endl;
     buildSphereMap(*chromaMap, zMap);
 
     Ball ball(663., 250.);
 
-    //TODO: draw on a separate thread, and add arguments to display
-//    Thread displayWindow(display, Arguments(&window, chromaMap, ball));
-//
-//    displayWindow.launch();
-//    cout << "Ok1" << endl;
-
-    cout << ball.x << "; " << ball.y << endl;
     while(window.isOpen())
     {
         Event event;
@@ -229,6 +206,7 @@ int main( int argc, char * argv[] )
         //Apply the gravitation physics
         makeFall(ball, zMap);
 
+
         //TODO: add an arrival check, later
         //TODO: adjust frame rate
         texture.update(*chromaMap);
@@ -240,6 +218,7 @@ int main( int argc, char * argv[] )
         window.draw(sprite);
         window.draw(pawn);
         window.display();
+        sleep(seconds(0.5f));
 
     }
     return 0;
