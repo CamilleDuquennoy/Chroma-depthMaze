@@ -10,13 +10,11 @@
 			<Collapse line="68" />
 			<Collapse line="143" />
 			<Collapse line="148" />
-			<Collapse line="153" />
-			<Collapse line="158" />
 		</Folding>
 	</File>
 	<File name="header.h" open="1" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="658" topLine="21" />
+			<Cursor1 position="658" topLine="3" />
 		</Cursor>
 	</File>
 </CodeBlocks_layout_file>
