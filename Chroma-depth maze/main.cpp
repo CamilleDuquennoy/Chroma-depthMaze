@@ -76,15 +76,15 @@ void buildSphereMap(Image pixelMap, MatrixXf &sphereMap)
     cout << "Finished loading zMap" << endl;
 };
 
-void makeFall(Ball* ball, MatrixXf map)
+void makeFall(Ball &ball, const MatrixXf map)
 {
     /*For the moment it doesn't include any speed, gravitation force or anything,
     it just goes down at eache frame*/
     //TODO: implement a real gravity
 
     //For now we assume pixel.x & pixel.y are equal to position in table map
-    int i = (int) ball->x;
-    int j = (int) ball->y;
+    int i = (int) ball.x;
+    int j = (int) ball.y;
     float z = map(i, j);
     int x = i;
     int y = j;
@@ -146,9 +146,11 @@ void makeFall(Ball* ball, MatrixXf map)
         y = j+1;
     }
 
-    ball->x = (float) x;
-    ball->y = (float) y;
-    ball->z = z;
+    ball.x = (float) x;
+    ball.y = (float) y;
+    ball.z = z;
+    cout << "Let\'s move the ball to :" << x << "; " << y << endl;
+    cout << "ball is located in " << ball.x << "; " << ball.y << endl;
 };
 
 void moveBall(Ball* ball)
@@ -204,7 +206,7 @@ int main( int argc, char * argv[] )
     cout << "OK" << endl;
     buildSphereMap(*chromaMap, zMap);
 
-    Ball* ball = new Ball(663., 200);
+    Ball ball(663., 250.);
 
     //TODO: draw on a separate thread, and add arguments to display
 //    Thread displayWindow(display, Arguments(&window, chromaMap, ball));
@@ -212,7 +214,7 @@ int main( int argc, char * argv[] )
 //    displayWindow.launch();
 //    cout << "Ok1" << endl;
 
-
+    cout << ball.x << "; " << ball.y << endl;
     while(window.isOpen())
     {
         Event event;
@@ -232,7 +234,7 @@ int main( int argc, char * argv[] )
         texture.update(*chromaMap);
         sprite.setTexture(texture);
 
-        pawn.setPosition(ball->x, ball->y);
+        pawn.setPosition(ball.x, ball.y);
 
         window.clear();
         window.draw(sprite);
