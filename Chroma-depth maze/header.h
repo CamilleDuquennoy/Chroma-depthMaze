@@ -16,6 +16,12 @@ class Ball
             z = 0.;
         };
 
+        Ball(float x, float y)
+        {
+            this->x = x;
+            this->y = y;
+            z = 0.;
+        }
         Ball(float x, float y, float z)
         {
             this->x = x;

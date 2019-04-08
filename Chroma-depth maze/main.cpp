@@ -14,7 +14,12 @@ using namespace sf;
 
 void loadMap (const string mapPath, Image &map)
 {
-    cout << "Ok0" << endl;
+    if (!map.loadFromFile(MAP_PATH))
+    {
+        cout << "Couldn't open the map file" << endl;
+    }
+    else
+    cout << "Map file opened" << endl;
 
 }
 
@@ -161,16 +166,6 @@ void display(Arguments arg)
     Image* image = arg.image;
     Ball* ball = arg.ball;
 
-    Sprite sprite;
-    Texture texture;
-    texture.loadFromImage(*image);
-
-    // let's create the graphic image of the ball
-    CircleShape pawn(10.f);
-    pawn.setFillColor(sf::Color(0, 0, 0, 0));  // pawn is transparent
-    pawn.setOutlineThickness(10.f);
-    pawn.setOutlineColor(sf::Color(0, 0, 0));
-
 
     //TODO: display map and ball on screen
     wrapMapToSphere(*image);  //Only for Geo-cosmos
@@ -178,36 +173,32 @@ void display(Arguments arg)
     cout << "Ok2" << endl;
     while(window->isOpen())
     {
-        texture.update(*image);
-        sprite.setTexture(texture);
-        sprite.setScale(sf::Vector2f(0.5f, 0.5f));
-
-        pawn.setPosition(ball->x, ball->y);
-
-        window->clear();
-        window->draw(sprite);
-        window->draw(pawn);
-        window->display();
     }
 };
 
 int main( int argc, char * argv[] )
 {
-    RenderWindow window(VideoMode(1200, 900), "Chroma-depth maze"); //Need to config size for Geo-cosmos
+    RenderWindow window(VideoMode(1366, 768), "Chroma-depth maze"); //Need to config size for Geo-cosmos
     Image* chromaMap = new Image();
-    chromaMap->create(1200, 900, Color(0, 0, 0));
+    loadMap(MAP_PATH, *chromaMap);
 
     MatrixXf zMap;
     //TODO: create a good map with photoshop
-    if (!chromaMap->loadFromFile(MAP_PATH))
-    {
-        cout << "Couldn't open the map file" << endl;
-    }
+
+    Sprite sprite;
+    Texture texture;
+    texture.loadFromImage(*chromaMap);
+
+    // let's create the graphic image of the ball
+    CircleShape pawn(10.f);
+    pawn.setFillColor(sf::Color(0, 0, 0, 0));  // pawn is transparent
+    pawn.setOutlineThickness(10.f);
+    pawn.setOutlineColor(sf::Color::White);
 
     cout << "OK" << endl;
 //    buildSphereMap(*chromaMap, zMap);
 
-    Ball* ball = new Ball();
+    Ball* ball = new Ball(663., 160);
 
     //TODO: draw on a separate thread, and add arguments to display
 //    Thread displayWindow(display, Arguments(&window, chromaMap, ball));
@@ -232,8 +223,16 @@ int main( int argc, char * argv[] )
 
         //TODO: add an arrival check, later
         //TODO: adjust frame rate
-        display(Arguments(&window, chromaMap, ball));
-//        sleep(Time(seconds(0.5f)));
+        texture.update(*chromaMap);
+        sprite.setTexture(texture);
+
+        pawn.setPosition(ball->x, ball->y);
+
+        window.clear();
+        window.draw(sprite);
+        window.draw(pawn);
+        window.display();
+        sleep(Time(seconds(0.5f)));
 
     }
     return 0;
