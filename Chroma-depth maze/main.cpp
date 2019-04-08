@@ -26,15 +26,18 @@ void loadMap (const string mapPath, Image &map)
 void buildSphereMap(Image pixelMap, MatrixXf &sphereMap)
 {
     float zMax = 10.;
+    cout << "Started loading zMap" << endl;
 
     Vector2u size = pixelMap.getSize();
-    sphereMap.resize(size.y, size.x);   //Might be inverted
+    sphereMap.resize(size.x, size.y);   //Might be inverted
 
-    for (unsigned int i = 0; i < size.y; i++)
+    cout << "Resized zmap to " << size.x << "; " << size.y << endl;
+    for (unsigned int i = 0; i < size.x; i++)
     {
-        for (unsigned int j = 0; j < size.x; j++)
+        for (unsigned int j = 0; j < size.y; j++)
         {
             float z = -INFINITY;
+//            cout << "Getting the color of pixel " << i << "; " << j << endl;
             Color color = pixelMap.getPixel(i, j);
             float R = (float) color.r / 255.;
             float G = (float) color.g / 255.;
@@ -68,6 +71,9 @@ void buildSphereMap(Image pixelMap, MatrixXf &sphereMap)
             sphereMap(i, j)  = z;
         };
     };
+
+
+    cout << "Finished loading zMap" << endl;
 };
 
 void makeFall(Ball* ball, MatrixXf map)
@@ -196,9 +202,9 @@ int main( int argc, char * argv[] )
     pawn.setOutlineColor(sf::Color::White);
 
     cout << "OK" << endl;
-//    buildSphereMap(*chromaMap, zMap);
+    buildSphereMap(*chromaMap, zMap);
 
-    Ball* ball = new Ball(663., 160);
+    Ball* ball = new Ball(663., 200);
 
     //TODO: draw on a separate thread, and add arguments to display
 //    Thread displayWindow(display, Arguments(&window, chromaMap, ball));
@@ -219,7 +225,7 @@ int main( int argc, char * argv[] )
         }
 
         //Apply the gravitation physics
-//        makeFall(ball, zMap);
+        makeFall(ball, zMap);
 
         //TODO: add an arrival check, later
         //TODO: adjust frame rate
@@ -232,7 +238,6 @@ int main( int argc, char * argv[] )
         window.draw(sprite);
         window.draw(pawn);
         window.display();
-        sleep(Time(seconds(0.5f)));
 
     }
     return 0;
