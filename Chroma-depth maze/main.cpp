@@ -26,7 +26,7 @@ void loadMap (const string mapPath, Image &map)
 void buildSphereMap(Image pixelMap, MatrixXf &sphereMap)
 {
     //TODO: have some average for z
-    float zMax = 10.;
+    float zMax = 100.;
     cout << "Started loading zMap" << endl;
 
     Vector2u size = pixelMap.getSize();
@@ -70,106 +70,32 @@ void buildSphereMap(Image pixelMap, MatrixXf &sphereMap)
                     }
                 }
             }
-            m(i, j)  = z;
+            sphereMap(i, j)  = z;
         }
     }
 
-    cout << "Raw zMap done" << endl;
-    /*Let's smooth the values*/
-    for (int i = 0; i < m.rows(); i++)
-    {
-        for (int j = 0; j < m.cols(); j++)
-        {
-            int count = 0;
-            sphereMap(i, j) = 0.;
-            for (int k = max(i - 5, 0); k < min(i + 5, m.rows() - 1); k++)
-            {
-                for (int l = max(j - 5, 0); l < min(j + 5, m.cols() - 1); l++)
-                {
-                    sphereMap(i, j) += m(k, l);
-                    count++;
-                }
-            }
-            sphereMap(i, j) /= (float) count;
 
-//            if(i == 0)
+    /*Not sure smoothing is a good idea, need to find a way for red walls*/
+//    cout << "Raw zMap done" << endl;
+//    /*Let's smooth the values*/
+//    for (int i = 0; i < m.rows(); i++)
+//    {
+//        for (int j = 0; j < m.cols(); j++)
+//        {
+//            /*This method is really slow...*/
+//            int count = 0;
+//            sphereMap(i, j) = 0.;
+//            for (int k = max(i - 10, 0); k < min(i + 10, m.rows() - 1); k+= 10)
 //            {
-//                if (j == 0)
+//                for (int l = max(j - 10, 0); l < min(j + 10, m.cols() - 1); l+= 10)
 //                {
-//                    sphereMap(i, j) = (
-//                       m(i,j) +    m(i,j+1) +
-//                       m(i+1,j) +  m(i+1,j+1))
-//                       / 4.;
-//                }
-//                else if (j == m.cols() - 1)
-//                {
-//                    sphereMap(i, j) = (
-//                       m(i,j) +    m(i,j-1) +
-//                       m(i+1,j) +  m(i+1,j-1))
-//                       / 4.;
-//                }
-//                else
-//                {
-//                    sphereMap(i, j) = (
-//                       m(i,j-1) +   m(i,j) +    m(i,j+1) +
-//                       m(i+1,j-1) + m(i+1,j) +  m(i+1,j+1))
-//                       / 6.;
+//                    sphereMap(i, j) += m(k, l);
+//                    count++;
 //                }
 //            }
-//            else if (i == m.rows() - 1)
-//            {
-//
-//                if (j == 0)
-//                {
-//                    sphereMap(i, j) = (
-//                       m(i,j) +    m(i,j+1) +
-//                       m(i-1,j) +  m(i-1,j+1))
-//                       / 4.;
-//                }
-//                else if (j == m.cols() - 1)
-//                {
-//                    sphereMap(i, j) = (
-//                       m(i,j) +    m(i,j-1) +
-//                       m(i-1,j) +  m(i-1,j-1))
-//                       / 4.;
-//                }
-//                else
-//                {
-//                    sphereMap(i, j) = (
-//                       m(i,j-1) +   m(i,j) +    m(i,j+1) +
-//                       m(i-1,j-1) + m(i-1,j) +  m(i-1,j+1))
-//                       / 6.;
-//                }
-//            }
-//            else
-//            {
-//                if (j == 0)
-//                {
-//                    sphereMap(i, j) = (
-//                       m(i-1,j) +  m(i-1,j+1) +
-//                       m(i,j) +    m(i,j+1) +
-//                       m(i+1,j) +  m(i+1,j+1))
-//                       / 6.;
-//                }
-//                else if (j == m.cols() - 1)
-//                {
-//                    sphereMap(i, j) = (
-//                       m(i-1,j-1)+  m(i-1,j) +
-//                       m(i,j) +     m(i,j-1) +
-//                       m(i+1,j) +   m(i+1,j-1))
-//                       / 6.;
-//                }
-//                else
-//                {
-//                    sphereMap(i, j) = (
-//                       m(i-1,j-1) + m(i-1,j) +  m(i-1,j+1) +
-//                       m(i,j-1) +   m(i,j) +    m(i,j+1) +
-//                       m(i+1,j-1) + m(i+1,j) +  m(i+1,j+1))
-//                       / 9.;
-//                }
-//            }
-        }
-    }
+//            sphereMap(i, j) /= (float) count;
+//        }
+//    }
 
     cout << "Finished loading zMap" << endl;
 };
@@ -285,10 +211,11 @@ int main( int argc, char * argv[] )
     pawn.setFillColor(sf::Color(0, 0, 0, 0));  // pawn is transparent
     pawn.setOutlineThickness(10.f);
     pawn.setOutlineColor(sf::Color::White);
+    pawn.setOrigin(10.f, 10.f);
 
     buildSphereMap(*chromaMap, zMap);
 
-    Ball ball(663., 250.);
+    Ball ball(683., 250.);
 
     while(window.isOpen())
     {
