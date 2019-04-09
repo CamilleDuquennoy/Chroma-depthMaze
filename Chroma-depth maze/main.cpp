@@ -117,60 +117,60 @@ void makeFall(Ball &ball, const MatrixXf map)
 //    cout << map(i-1, j-1) << ";" << map(i-1, j) << ";" << map(i-1, j+1) << endl;
 //    cout << map(i, j-1) << ";" << map(i, j) << ";" << map(i, j+1) << endl;
 //    cout << map(i+1, j-1) << ";" << map(i+1, j) << ";" << map(i+1, j+1) << endl;
-    if (map(i-5, j-5) < z && i>4 && j>4)
+    if (map(i-10, j-10) < z && i>9 && j>9)
     {
-        z = map(i-5, j-5);
-        x = i-5;
-        y = j-5;
+        z = map(i-1, j-1);
+        x = i-1;
+        y = j-1;
     }
 
-    if (map(i-5, j) <= z && i>4)
+    if (map(i-10, j) <= z && i>9)
     {
-        z = map(i-5, j);
-        x = i-5;
+        z = map(i-1, j);
+        x = i-1;
         y = j;
     }
 
-    if (map(i-5, j+5) <= z && i > 4 && j < map.cols() - 5)
+    if (map(i-10, j+10) < z && i > 9 && j < map.cols() - 10)
     {
-        z = map(i-5, j+5);
-        x = i-5;
-        y = j+5;
+        z = map(i-1, j+1);
+        x = i-1;
+        y = j+1;
     }
 
-    if (map(i, j-5) <= z && j > 4)
+    if (map(i, j-10) <= z && j > 9)
     {
-        z = map(i, j-5);
+        z = map(i, j-1);
         x = i;
-        y = j-5;
+        y = j-1;
     }
 
-    if (map(i, j+5) <= z && j < map.cols() - 5)
+    if (map(i, j+10) <= z && j < map.cols() - 10)
     {
-        z = map(i, j+5);
+        z = map(i, j+1);
         x = i;
-        y = j+5;
+        y = j+1;
     }
 
-    if (map(i+5, j-5) <= z && i < map.rows() - 5 && j > 4)
+    if (map(i+10, j-10) < z && i < map.rows() - 10 && j > 9)
     {
-        z = map(i+5, j-5);
-        x = i+5;
-        y = j-5;
+        z = map(i+1, j-1);
+        x = i+1;
+        y = j-1;
     }
 
-    if (map(i+5, j) <= z && i < map.rows() - 5)
+    if (map(i+10, j) <= z && i < map.rows() - 10)
     {
-        z = map(i+5, j);
-        x = i+5;
+        z = map(i+1, j);
+        x = i+1;
         y = j;
     }
 
-    if (map(i+5, j+5) <= z && i < map.rows() - 5 && j < map.cols() - 5)
+    if (map(i+10, j+10) < z && i < map.rows() - 10 && j < map.cols() - 10)
     {
-        z = map(i+5, j+5);
-        x = i+5;
-        y = j+5;
+        z = map(i+1, j+1);
+        x = i+1;
+        y = j+1;
     }
 
     ball.x = (float) x;
@@ -215,7 +215,8 @@ int main( int argc, char * argv[] )
 
     buildSphereMap(*chromaMap, zMap);
 
-    Ball ball(683., 250.);
+//    Ball ball(683., 350.);
+    Ball ball(900, 500);
 
     while(window.isOpen())
     {
@@ -243,7 +244,7 @@ int main( int argc, char * argv[] )
         window.draw(sprite);
         window.draw(pawn);
         window.display();
-        sleep(seconds(0.5f));
+        sleep(seconds(0.1f));
 
     }
     return 0;
