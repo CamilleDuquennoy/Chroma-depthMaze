@@ -8,7 +8,7 @@ class Ball
 {
     public :
         float x, y, z;
-        // Vector3f v; //Not used yet
+        Vector3f v; // Speed of the ball
         Ball()
         {
             x = 0.;
@@ -21,12 +21,22 @@ class Ball
             this->x = x;
             this->y = y;
             z = 0.;
+            v = Vector3f(0., 0., 0.);
         }
         Ball(float x, float y, float z)
         {
             this->x = x;
             this->y = y;
             this->z = z;
+            v = Vector3f(0., 0., 0.);
+        }
+
+        Ball (float x, float y, float z, Vector3f v)
+        {
+            this->x = x;
+            this->y = y;
+            this->z = z;
+            this->v = v;
         }
 
         ~Ball(){}
