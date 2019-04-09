@@ -30,7 +30,9 @@ void buildSphereMap(Image pixelMap, MatrixXf &sphereMap)
     cout << "Started loading zMap" << endl;
 
     Vector2u size = pixelMap.getSize();
-    sphereMap.resize(size.x, size.y);   //Might be inverted
+    sphereMap.resize(size.x, size.y);
+
+    MatrixXf m(sphereMap.rows(), sphereMap.cols());
 
     cout << "Resized zmap to " << size.x << "; " << size.y << endl;
     for (unsigned int i = 0; i < size.x; i++)
@@ -65,13 +67,109 @@ void buildSphereMap(Image pixelMap, MatrixXf &sphereMap)
 
                         else
                             z = (B - 1) * 2. * zMax;
-                    };
-                };
-            };
-            sphereMap(i, j)  = z;
-        };
-    };
+                    }
+                }
+            }
+            m(i, j)  = z;
+        }
+    }
 
+    cout << "Raw zMap done" << endl;
+    /*Let's smooth the values*/
+    for (int i = 0; i < m.rows(); i++)
+    {
+        for (int j = 0; j < m.cols(); j++)
+        {
+            int count = 0;
+            sphereMap(i, j) = 0.;
+            for (int k = max(i - 5, 0); k < min(i + 5, m.rows() - 1); k++)
+            {
+                for (int l = max(j - 5, 0); l < min(j + 5, m.cols() - 1); l++)
+                {
+                    sphereMap(i, j) += m(k, l);
+                    count++;
+                }
+            }
+            sphereMap(i, j) /= (float) count;
+
+//            if(i == 0)
+//            {
+//                if (j == 0)
+//                {
+//                    sphereMap(i, j) = (
+//                       m(i,j) +    m(i,j+1) +
+//                       m(i+1,j) +  m(i+1,j+1))
+//                       / 4.;
+//                }
+//                else if (j == m.cols() - 1)
+//                {
+//                    sphereMap(i, j) = (
+//                       m(i,j) +    m(i,j-1) +
+//                       m(i+1,j) +  m(i+1,j-1))
+//                       / 4.;
+//                }
+//                else
+//                {
+//                    sphereMap(i, j) = (
+//                       m(i,j-1) +   m(i,j) +    m(i,j+1) +
+//                       m(i+1,j-1) + m(i+1,j) +  m(i+1,j+1))
+//                       / 6.;
+//                }
+//            }
+//            else if (i == m.rows() - 1)
+//            {
+//
+//                if (j == 0)
+//                {
+//                    sphereMap(i, j) = (
+//                       m(i,j) +    m(i,j+1) +
+//                       m(i-1,j) +  m(i-1,j+1))
+//                       / 4.;
+//                }
+//                else if (j == m.cols() - 1)
+//                {
+//                    sphereMap(i, j) = (
+//                       m(i,j) +    m(i,j-1) +
+//                       m(i-1,j) +  m(i-1,j-1))
+//                       / 4.;
+//                }
+//                else
+//                {
+//                    sphereMap(i, j) = (
+//                       m(i,j-1) +   m(i,j) +    m(i,j+1) +
+//                       m(i-1,j-1) + m(i-1,j) +  m(i-1,j+1))
+//                       / 6.;
+//                }
+//            }
+//            else
+//            {
+//                if (j == 0)
+//                {
+//                    sphereMap(i, j) = (
+//                       m(i-1,j) +  m(i-1,j+1) +
+//                       m(i,j) +    m(i,j+1) +
+//                       m(i+1,j) +  m(i+1,j+1))
+//                       / 6.;
+//                }
+//                else if (j == m.cols() - 1)
+//                {
+//                    sphereMap(i, j) = (
+//                       m(i-1,j-1)+  m(i-1,j) +
+//                       m(i,j) +     m(i,j-1) +
+//                       m(i+1,j) +   m(i+1,j-1))
+//                       / 6.;
+//                }
+//                else
+//                {
+//                    sphereMap(i, j) = (
+//                       m(i-1,j-1) + m(i-1,j) +  m(i-1,j+1) +
+//                       m(i,j-1) +   m(i,j) +    m(i,j+1) +
+//                       m(i+1,j-1) + m(i+1,j) +  m(i+1,j+1))
+//                       / 9.;
+//                }
+//            }
+        }
+    }
 
     cout << "Finished loading zMap" << endl;
 };
