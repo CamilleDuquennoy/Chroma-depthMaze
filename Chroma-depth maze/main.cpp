@@ -25,7 +25,6 @@ void loadMap (const string mapPath, Image &map)
 
 void buildSphereMap(Image pixelMap, MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> &normalMap)
 {
-    //TODO: have some average for z
     float zMax = 100.;
     cout << "Started loading zMap" << endl;
 
@@ -74,22 +73,20 @@ void buildSphereMap(Image pixelMap, MatrixXf &sphereMap, Matrix<Eigen::Vector3f,
         }
     }
 
-    /*Let's create the normal map*/
-    normalMap(0., 0.) = Eigen::Vector3f(0., 0., 1.);
-    normalMap(0., normalMap.cols()-1) = Eigen::Vector3f(0., 0., 1.);
-    normalMap(normalMap.rows()-1, 0.) = Eigen::Vector3f(0., 0., 1.);
-    normalMap(normalMap.rows()-1, normalMap.cols()-1) = Eigen::Vector3f(0., 0., 1.);
-
-    for (int i = 1; i < normalMap.rows() - 1; i++)
+    /*Let's create the normal map
+    To have a good normal, we have a 10pixel margin where the normal is not right*/
+    for (int i = 0; i < normalMap.rows(); i++)
     {
-        normalMap(i, 0.) = Eigen::Vector3f(0., 0., 1.);
-        normalMap(i, normalMap.cols()-1) = Eigen::Vector3f(0., 0., 1.);
-
-        for (int j = 1; j < normalMap.cols() - 1; j++)
+        for (int j = 0; j < normalMap.cols(); j++)
         {
-            normalMap(0., j) = Eigen::Vector3f(0., 0., 1.);
-            normalMap(normalMap.rows()-1, j) = Eigen::Vector3f(0., 0., 1.);
+            normalMap(i, j) = Eigen::Vector3f(0., 0., 1.);
+        }
+    }
 
+    for (int i = 10; i < normalMap.rows() - 10; i++)
+    {
+        for (int j = 10; j < normalMap.cols() - 10; j++)
+        {
             Eigen::Vector3f n;
 
             n = Eigen::Vector3f(20., 0., sphereMap(i+10, j) - sphereMap(i-10, j))
@@ -204,7 +201,22 @@ void makeFall(Ball &ball, const MatrixXf map)
 
 void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, Time timeElapsed)
 {
+    Eigen::Vector3f g(0., 0., -1.);   // Gravitation force
 
+    Eigen::Vector3f pos(ball.x, ball.y, ball.z);
+    Eigen::Vector3f v = ball.v;
+
+    Eigen::Vector3f n(0., 0., 0.);
+//    if (zmap((int) ball.x, (int) ball.y) == ball.z)
+        n = normalMap((int) ball.x, (int) ball.y);
+
+    v += timeElapsed.asMicroseconds() * (g + n);
+    pos += timeElapsed.asMicroseconds() * v;    //TODO: collisions
+
+    ball.v = v;
+    ball.x = pos(0);
+    ball.y = pos(1);
+    ball.z = pos(2);
 }
 
 void moveBall(Ball* ball)
@@ -236,9 +248,9 @@ int main( int argc, char * argv[] )
     Texture texture;
     texture.loadFromImage(*chromaMap);
 
-    // let's create the graphic image of the ball
+    /* let's create the graphic image of the ball*/
     CircleShape pawn(10.f);
-    pawn.setFillColor(sf::Color(0, 0, 0, 0));  // pawn is transparent
+    pawn.setFillColor(sf::Color(0, 0, 0, 0));  /*pawn is transparent*/
     pawn.setOutlineThickness(10.f);
     pawn.setOutlineColor(sf::Color::White);
     pawn.setOrigin(10.f, 10.f);
@@ -247,6 +259,8 @@ int main( int argc, char * argv[] )
 
 //    Ball ball(683., 350.);
     Ball ball(900, 500);
+
+    Clock clock;
 
     while(window.isOpen())
     {
@@ -259,8 +273,10 @@ int main( int argc, char * argv[] )
             //TODO: add joystick events to moveBall or moveWorld
         }
 
-        //Apply the gravitation physics
-        makeFall(ball, zMap);
+        /*Apply the gravitation physics*/
+//        makeFall(ball, zMap);
+        Time elapsed = clock.restart();
+        makeFallWithNormals(ball, zMap, nMap, elapsed);
 
 
         //TODO: add an arrival check, later
