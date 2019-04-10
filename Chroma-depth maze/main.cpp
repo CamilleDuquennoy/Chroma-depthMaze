@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 #include <iostream>
+#include <math.h>
 #include "header.h"
 
 using namespace Eigen;
@@ -207,14 +208,14 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     Eigen::Vector3f v = ball.v;
 
     Eigen::Vector3f n(0., 0., 0.);
-//    if (zmap((int) ball.x, (int) ball.y) == ball.z)
+//    if (zMap((int) ball.x, (int) ball.y) == ball.z)
         n = normalMap((int) ball.x, (int) ball.y);
-    v += timeElapsed.asSeconds() * (g + n);
+    v += 2. * timeElapsed.asSeconds() * (g + n);
     pos += timeElapsed.asSeconds() * v;    //TODO: collisions
 
     ball.v = v;
-    ball.x = pos(0);
-    ball.y = pos(1);
+    ball.x = max(min((float) zMap.rows()-1.f, pos(0)), 0.f);
+    ball.y = max(min((float) zMap.cols()-1.f, pos(1)), 0.f);
     ball.z = pos(2);
 }
 
@@ -289,7 +290,6 @@ int main( int argc, char * argv[] )
         window.draw(sprite);
         window.draw(pawn);
         window.display();
-        sleep(seconds(0.01f));
 
     }
     return 0;
