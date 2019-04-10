@@ -199,7 +199,7 @@ void makeFall(Ball &ball, const MatrixXf map)
     ball.z = z;
 };
 
-void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, Time timeElapsed)
+void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, const Time timeElapsed)
 {
     Eigen::Vector3f g(0., 0., -1.);   // Gravitation force
 
@@ -209,9 +209,8 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     Eigen::Vector3f n(0., 0., 0.);
 //    if (zmap((int) ball.x, (int) ball.y) == ball.z)
         n = normalMap((int) ball.x, (int) ball.y);
-
-    v += timeElapsed.asMicroseconds() * (g + n);
-    pos += timeElapsed.asMicroseconds() * v;    //TODO: collisions
+    v += timeElapsed.asSeconds() * (g + n);
+    pos += timeElapsed.asSeconds() * v;    //TODO: collisions
 
     ball.v = v;
     ball.x = pos(0);
@@ -257,8 +256,8 @@ int main( int argc, char * argv[] )
 
     buildSphereMap(*chromaMap, zMap, nMap);
 
-//    Ball ball(683., 350.);
-    Ball ball(900, 500);
+    Ball ball(683., 350.);
+//    Ball ball(900, 500, 0, Eigen::Vector3f(10., 0., 0.));
 
     Clock clock;
 
@@ -290,7 +289,7 @@ int main( int argc, char * argv[] )
         window.draw(sprite);
         window.draw(pawn);
         window.display();
-        sleep(seconds(0.1f));
+        sleep(seconds(0.01f));
 
     }
     return 0;
