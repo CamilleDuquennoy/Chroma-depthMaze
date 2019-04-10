@@ -23,7 +23,7 @@ void loadMap (const string mapPath, Image &map)
 
 }
 
-void buildSphereMap(Image pixelMap, MatrixXf &sphereMap)
+void buildSphereMap(Image pixelMap, MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> &normalMap)
 {
     //TODO: have some average for z
     float zMax = 100.;
@@ -32,7 +32,7 @@ void buildSphereMap(Image pixelMap, MatrixXf &sphereMap)
     Vector2u size = pixelMap.getSize();
     sphereMap.resize(size.x, size.y);
 
-    MatrixXf m(sphereMap.rows(), sphereMap.cols());
+    normalMap.resize(sphereMap.rows(), sphereMap.cols());
 
     cout << "Resized zmap to " << size.x << "; " << size.y << endl;
     for (unsigned int i = 0; i < size.x; i++)
@@ -74,6 +74,30 @@ void buildSphereMap(Image pixelMap, MatrixXf &sphereMap)
         }
     }
 
+    /*Let's create the normal map*/
+    normalMap(0., 0.) = Eigen::Vector3f(0., 0., 1.);
+    normalMap(0., normalMap.cols()-1) = Eigen::Vector3f(0., 0., 1.);
+    normalMap(normalMap.rows()-1, 0.) = Eigen::Vector3f(0., 0., 1.);
+    normalMap(normalMap.rows()-1, normalMap.cols()-1) = Eigen::Vector3f(0., 0., 1.);
+
+    for (int i = 1; i < normalMap.rows() - 1; i++)
+    {
+        normalMap(i, 0.) = Eigen::Vector3f(0., 0., 1.);
+        normalMap(i, normalMap.cols()-1) = Eigen::Vector3f(0., 0., 1.);
+
+        for (int j = 1; j < normalMap.cols() - 1; j++)
+        {
+            normalMap(0., j) = Eigen::Vector3f(0., 0., 1.);
+            normalMap(normalMap.rows()-1, j) = Eigen::Vector3f(0., 0., 1.);
+
+            Eigen::Vector3f n;
+
+            n = Eigen::Vector3f(20., 0., sphereMap(i+10, j) - sphereMap(i-10, j))
+                    .cross(Eigen::Vector3f(0., 20., sphereMap(i, j+10) - sphereMap(i, j-10)));
+            n.normalize();
+            normalMap(i, j) = n;
+        }
+    }
 
     /*Not sure smoothing is a good idea, need to find a way for red walls*/
 //    cout << "Raw zMap done" << endl;
@@ -178,6 +202,11 @@ void makeFall(Ball &ball, const MatrixXf map)
     ball.z = z;
 };
 
+void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, Time timeElapsed)
+{
+
+}
+
 void moveBall(Ball* ball)
 {
     //TODO: get joystick or keyboard input to move the ball
@@ -200,6 +229,7 @@ int main( int argc, char * argv[] )
     loadMap(MAP_PATH, *chromaMap);
 
     MatrixXf zMap;
+    Matrix<Eigen::Vector3f, Dynamic, Dynamic> nMap;
     //TODO: create a good map with photoshop (kinda finished)
 
     Sprite sprite;
@@ -213,7 +243,7 @@ int main( int argc, char * argv[] )
     pawn.setOutlineColor(sf::Color::White);
     pawn.setOrigin(10.f, 10.f);
 
-    buildSphereMap(*chromaMap, zMap);
+    buildSphereMap(*chromaMap, zMap, nMap);
 
 //    Ball ball(683., 350.);
     Ball ball(900, 500);
