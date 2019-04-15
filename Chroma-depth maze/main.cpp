@@ -217,18 +217,20 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     Eigen::Vector3f direction = v.normalized();
 
     Eigen::Vector3f pos = beforePos;
+//    cout << "Pos: " << pos(0) << "; " << pos(1) << "; " << pos(2) << endl;
     for (float t = 0.; t < distance; t += 0.1)  //Need to adapt the incrementing of t
     {
         pos = beforePos + t * direction;
-        if (zMap((int) pos(0) + 10, (int) pos(1) + 10) > pos(2))
+        if (zMap((int) pos(0), (int) pos(1)) - pos(2) > 0.5)
         {
             pos(2) = zMap((int) pos(0), (int) pos(1));
             v(2) = 0.;
 
-            if (zMap((int) pos(0) + 10, (int) pos(1) + 10) - pos(2) > 20.)  // Need to check depending on the ball's diameter
+            if (zMap((int) pos(0), (int) pos(1)) - pos(2) > 20.)  // Need to check depending on the ball's diameter
             {
                 Eigen::Vector3f temp = (v + normalMap((int) pos(0), (int) pos(1))).normalized() * v.norm();
                 v = Eigen::Vector3f(temp(0), temp(1), 0.);
+                pos -= t * direction;
             }
             break;
         }
@@ -238,7 +240,8 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     ball.v = v;
     ball.x = max(min((float) zMap.rows()-1.f, pos(0)), 0.f);
     ball.y = max(min((float) zMap.cols()-1.f, pos(1)), 0.f);
-    ball.z = pos(2);
+    ball.z = zMap(ball.x, ball.y);
+//    cout << "After: " << v(0) << "; " << v(1) << "; " << v(2) << endl;
 }
 
 void moveBall(Ball* ball)
@@ -280,7 +283,7 @@ int main( int argc, char * argv[] )
     buildSphereMap(*chromaMap, zMap, nMap);
 
 //    Ball ball(683., 350.);
-    Ball ball(1000, 500, zMap(1000, 500), Eigen::Vector3f(20., 0., 0.));
+    Ball ball(1000, 500, zMap(1000, 500), Eigen::Vector3f(20., 20., 0.));
 
     Clock clock;
 
