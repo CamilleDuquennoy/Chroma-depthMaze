@@ -204,14 +204,36 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
 {
     Eigen::Vector3f g(0., 0., -1.);   // Gravitation force
 
-    Eigen::Vector3f pos(ball.x, ball.y, ball.z);
+    Eigen::Vector3f beforePos(ball.x, ball.y, ball.z);
     Eigen::Vector3f v = ball.v;
 
     Eigen::Vector3f n(0., 0., 0.);
 //    if (zMap((int) ball.x, (int) ball.y) == ball.z)
         n = normalMap((int) ball.x, (int) ball.y);
     v += 2. * timeElapsed.asSeconds() * (g + n);
-    pos += timeElapsed.asSeconds() * v;    //TODO: collisions
+    Eigen::Vector3f afterPos = beforePos + timeElapsed.asSeconds() * v;    //TODO: collisions
+
+    Eigen::Vector3f direction = afterPos - beforePos;
+    float distance = direction.norm();
+    direction.normalize();
+
+    Eigen::Vector3f pos = beforePos;
+    for (float t = 0.; t < distance; t += 0.1)  //Need to adapt the incrementing of t
+    {
+        //TODO: check if hits something
+        pos = beforePos + t * direction;
+        if (zMap((int) pos(0) + 5, (int) pos(1) + 5) > pos(2))
+        {
+            pos(2) = zMap((int) pos(0), (int) pos(1));
+
+            if (zMap((int) pos(0) + 5, (int) pos(1) + 5) - pos(2) > 20.)  // Need to check depending on the ball's diameter
+            {
+                v *= -1.;
+            }
+            break;
+        }
+    }
+
 
     ball.v = v;
     ball.x = max(min((float) zMap.rows()-1.f, pos(0)), 0.f);
@@ -257,8 +279,8 @@ int main( int argc, char * argv[] )
 
     buildSphereMap(*chromaMap, zMap, nMap);
 
-    Ball ball(683., 350.);
-//    Ball ball(900, 500, 0, Eigen::Vector3f(10., 0., 0.));
+//    Ball ball(683., 350.);
+    Ball ball(900, 500, 0, Eigen::Vector3f(10., 0., 0.));
 
     Clock clock;
 
@@ -268,7 +290,10 @@ int main( int argc, char * argv[] )
         while(window.pollEvent(event))
         {
             if(event.type == Event::Closed)
+            {
                 window.close();
+                return 0;
+            }
 
             //TODO: add joystick events to moveBall or moveWorld
         }
