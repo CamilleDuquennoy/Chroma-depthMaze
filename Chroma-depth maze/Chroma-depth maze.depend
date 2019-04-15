@@ -1149,10 +1149,11 @@
 	<SFML/Graphics/Drawable.hpp>
 	<SFML/Window/GlResource.hpp>
 
-1554884185 source:d:\documents\chroma-depthmaze\chroma-depth maze\main.cpp
+1555313603 source:d:\documents\chroma-depthmaze\chroma-depth maze\main.cpp
 	<string>
 	<thread>
 	<iostream>
+	<math.h>
 	"header.h"
 
 1554875774 d:\documents\chroma-depthmaze\chroma-depth maze\header.h

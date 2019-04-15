@@ -66,7 +66,7 @@ void buildSphereMap(Image pixelMap, MatrixXf &sphereMap, Matrix<Eigen::Vector3f,
                             z = (G / 2 - B) * zMax;
 
                         else
-                            z = (B - 1) * 2. * zMax;
+                            z = (B - 2.) * zMax;
                     }
                 }
             }
@@ -202,33 +202,33 @@ void makeFall(Ball &ball, const MatrixXf map)
 
 void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, const Time timeElapsed)
 {
+    //TODO: frame rate is too slow (3fps)
     Eigen::Vector3f g(0., 0., -1.);   // Gravitation force
 
     Eigen::Vector3f beforePos(ball.x, ball.y, ball.z);
     Eigen::Vector3f v = ball.v;
 
     Eigen::Vector3f n(0., 0., 0.);
-//    if (zMap((int) ball.x, (int) ball.y) == ball.z)
+    if (ball.z - zMap((int) ball.x, (int) ball.y) < 5.)
         n = normalMap((int) ball.x, (int) ball.y);
     v += 2. * timeElapsed.asSeconds() * (g + n);
-    Eigen::Vector3f afterPos = beforePos + timeElapsed.asSeconds() * v;    //TODO: collisions
 
-    Eigen::Vector3f direction = afterPos - beforePos;
-    float distance = direction.norm();
-    direction.normalize();
+    float distance = (timeElapsed.asSeconds() * v).norm();
+    Eigen::Vector3f direction = v.normalized();
 
     Eigen::Vector3f pos = beforePos;
     for (float t = 0.; t < distance; t += 0.1)  //Need to adapt the incrementing of t
     {
-        //TODO: check if hits something
         pos = beforePos + t * direction;
-        if (zMap((int) pos(0) + 5, (int) pos(1) + 5) > pos(2))
+        if (zMap((int) pos(0) + 10, (int) pos(1) + 10) > pos(2))
         {
             pos(2) = zMap((int) pos(0), (int) pos(1));
+            v(2) = 0.;
 
-            if (zMap((int) pos(0) + 5, (int) pos(1) + 5) - pos(2) > 20.)  // Need to check depending on the ball's diameter
+            if (zMap((int) pos(0) + 10, (int) pos(1) + 10) - pos(2) > 20.)  // Need to check depending on the ball's diameter
             {
-                v *= -1.;
+                Eigen::Vector3f temp = (v + normalMap((int) pos(0), (int) pos(1))).normalized() * v.norm();
+                v = Eigen::Vector3f(temp(0), temp(1), 0.);
             }
             break;
         }
@@ -273,14 +273,14 @@ int main( int argc, char * argv[] )
     /* let's create the graphic image of the ball*/
     CircleShape pawn(10.f);
     pawn.setFillColor(sf::Color(0, 0, 0, 0));  /*pawn is transparent*/
-    pawn.setOutlineThickness(10.f);
-    pawn.setOutlineColor(sf::Color::White);
+//    pawn.setOutlineThickness(10.f);
+    pawn.setFillColor(sf::Color::White);
     pawn.setOrigin(10.f, 10.f);
 
     buildSphereMap(*chromaMap, zMap, nMap);
 
 //    Ball ball(683., 350.);
-    Ball ball(900, 500, 0, Eigen::Vector3f(10., 0., 0.));
+    Ball ball(1000, 500, zMap(1000, 500), Eigen::Vector3f(20., 0., 0.));
 
     Clock clock;
 
