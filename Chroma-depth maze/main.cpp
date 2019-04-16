@@ -211,7 +211,7 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     Eigen::Vector3f n(0., 0., 0.);
     if (ball.z - zMap((int) ball.x, (int) ball.y) < 5.)
         n = normalMap((int) ball.x, (int) ball.y);
-    v += 2. * timeElapsed.asSeconds() * (g + n);
+    v += 10. * timeElapsed.asSeconds() * (g + n);
 
     float distance = (timeElapsed.asSeconds() * v).norm();
     Eigen::Vector3f direction = v.normalized();
@@ -272,6 +272,7 @@ int main( int argc, char * argv[] )
     Sprite sprite;
     Texture texture;
     texture.loadFromImage(*chromaMap);
+    sprite.setTexture(texture);
 
     /* let's create the graphic image of the ball*/
     CircleShape pawn(10.f);
@@ -310,7 +311,6 @@ int main( int argc, char * argv[] )
         //TODO: add an arrival check, later
         //TODO: adjust frame rate
         texture.update(*chromaMap);
-        sprite.setTexture(texture);
 
         pawn.setPosition(ball.x, ball.y);
 
