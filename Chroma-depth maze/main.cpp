@@ -1,6 +1,6 @@
 
 #define _USE_MATH_DEFINES
-#define MAP_PATH "Map.png"
+#define MAP_PATH "map_test_2.png"
 
 #include <string>
 #include <thread>
@@ -276,9 +276,9 @@ int main( int argc, char * argv[] )
 
     /* let's create the graphic image of the ball*/
     CircleShape pawn(10.f);
-    pawn.setFillColor(sf::Color(0, 0, 0, 0));  /*pawn is transparent*/
-//    pawn.setOutlineThickness(10.f);
-    pawn.setFillColor(sf::Color::White);
+    pawn.setFillColor(sf::Color(200, 200, 200, 200));  /*pawn is transparent*/
+    pawn.setOutlineThickness(1.f);
+    pawn.setOutlineColor(sf::Color::Black);
     pawn.setOrigin(10.f, 10.f);
 
     buildSphereMap(*chromaMap, zMap, nMap);
