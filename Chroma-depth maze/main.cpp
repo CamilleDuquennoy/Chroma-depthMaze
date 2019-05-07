@@ -293,7 +293,7 @@ int main( int argc, char * argv[] )
     buildSphereMap(ZMAP_PATH, zMap, nMap);
 
 //    Ball ball(683., 350.);
-    Ball ball(1000, 500, zMap(1000, 500), Eigen::Vector3f(20., 20., 0.));
+    Ball ball(950, 500, zMap(950, 500), Eigen::Vector3f(40., 5., 0.));
 
     Clock clock;
 
@@ -322,6 +322,7 @@ int main( int argc, char * argv[] )
         texture.update(*chromaMap);
 
         pawn.setPosition(ball.x, ball.y);
+        pawn.setRadius(10. + ball.z/30.);
 
         window.clear();
         window.draw(sprite);
