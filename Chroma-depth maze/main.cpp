@@ -218,7 +218,7 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     Eigen::Vector3f v = ball.v;
 
     Eigen::Vector3f n(0., 0., 0.);
-    if (ball.z - zMap((int) ball.x, (int) ball.y) < )
+    if (ball.z - zMap((int) ball.x, (int) ball.y) < 5.)
         n = normalMap((int) ball.x, (int) ball.y);
     v += 10. * timeElapsed.asSeconds() * (g + n);
 
@@ -308,13 +308,13 @@ int main( int argc, char * argv[] )
     pawn.setFillColor(sf::Color(200, 200, 200, 200));  /*pawn is transparent*/
     pawn.setOutlineThickness(1.f);
     pawn.setOutlineColor(sf::Color::Black);
-    pawn.setOrigin(10.f, 10.f);
+    float radius = 10.f;
 
     buildSphereMap(ZMAP_PATH, zMap, nMap);
     saveZMap(zMap, "zMap_grey.png");
 
 //    Ball ball(683., 350.);
-    Ball ball(950, 500, zMap(950, 500), Eigen::Vector3f(40., -5., 0.));
+    Ball ball(950, 490, zMap(950, 490), Eigen::Vector3f(40., -5., 0.));
 
     Clock clock;
 
@@ -342,8 +342,9 @@ int main( int argc, char * argv[] )
         //TODO: adjust frame rate
         texture.update(*chromaMap);
 
-        pawn.setPosition(ball.x, ball.y);
-        pawn.setRadius(5. + ball.z/20.);
+        radius = 10. + ball.z/10.;
+        pawn.setPosition(ball.x + radius, ball.y + radius);
+        pawn.setRadius(radius);
 
         window.clear();
         window.draw(sprite);
