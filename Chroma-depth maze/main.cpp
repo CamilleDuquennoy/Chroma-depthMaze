@@ -55,22 +55,22 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
 
                 //sets the depth depending on the color
                 /* /!\Doesn't check a few things, like blue when there's red, etc. /!\ */
-                if (R > 0.9)
-                    z = (R - G / 2.) * zMax;
+                if (R > 0.99)
+                    z = (R - G / 2. + B / 2.) * zMax;
 
                 else
                 {
-                    if (R > 0.1)
-                        z = R * zMax / 2.;
+                    if (R > 0.01)
+                        z =(1.- G + R) * zMax / 2.;
 
                     else
                     {
                         if (G > 0.9)
-                            z = - B * zMax / 2.;
+                            z =(G - 1. - B) * zMax / 2.;
 
                         else
                         {
-                            if (G > 0.1)
+                            if (G > 0.025)
                                 z = (G / 2 - B) * zMax;
 
                             else
@@ -218,7 +218,7 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     Eigen::Vector3f v = ball.v;
 
     Eigen::Vector3f n(0., 0., 0.);
-    if (ball.z - zMap((int) ball.x, (int) ball.y) < 5.)
+    if (ball.z - zMap((int) ball.x, (int) ball.y) < )
         n = normalMap((int) ball.x, (int) ball.y);
     v += 10. * timeElapsed.asSeconds() * (g + n);
 
@@ -249,7 +249,7 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     ball.v = v;
     ball.x = max(min((float) zMap.rows()-1.f, pos(0)), 0.f);
     ball.y = max(min((float) zMap.cols()-1.f, pos(1)), 0.f);
-    ball.z = zMap(ball.x, ball.y);
+    ball.z = zMap((int) ball.x, (int) ball.y);
 //    cout << "After: " << v(0) << "; " << v(1) << "; " << v(2) << endl;
 }
 
@@ -267,6 +267,26 @@ void wrapMapToSphere(Image image)
 {
     //TODO: the function, but later
 };
+
+void saveZMap(MatrixXf zMap, const string fileName)
+{
+    Image img;
+    img.create(zMap.rows(), zMap.cols());
+
+    for(int i = 0; i < zMap.rows(); i++)
+    {
+        for (int j = 0; j < zMap.cols(); j++)
+        {
+            float z = (200. + zMap(i, j)) / 300. * 255.;
+            img.setPixel(i, j, Color(z, z, z));
+        }
+    }
+
+    if (!img.saveToFile(fileName))
+    {
+        cout << "Couldn't save the zMap file" << endl;
+    }
+}
 
 int main( int argc, char * argv[] )
 {
@@ -291,9 +311,10 @@ int main( int argc, char * argv[] )
     pawn.setOrigin(10.f, 10.f);
 
     buildSphereMap(ZMAP_PATH, zMap, nMap);
+    saveZMap(zMap, "zMap_grey.png");
 
 //    Ball ball(683., 350.);
-    Ball ball(950, 500, zMap(950, 500), Eigen::Vector3f(40., 5., 0.));
+    Ball ball(950, 500, zMap(950, 500), Eigen::Vector3f(40., -5., 0.));
 
     Clock clock;
 
@@ -322,7 +343,7 @@ int main( int argc, char * argv[] )
         texture.update(*chromaMap);
 
         pawn.setPosition(ball.x, ball.y);
-        pawn.setRadius(10. + ball.z/30.);
+        pawn.setRadius(5. + ball.z/20.);
 
         window.clear();
         window.draw(sprite);
