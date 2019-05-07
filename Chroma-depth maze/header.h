@@ -8,6 +8,7 @@ class Ball
 {
     public :
         float x, y, z;
+        float radius = 10.f;
         Eigen::Vector3f v; // Speed of the ball
         Ball()
         {

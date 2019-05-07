@@ -214,7 +214,7 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     //TODO: frame rate is too slow (3fps)
     Eigen::Vector3f g(0., 0., -1.);   // Gravitation force
 
-    Eigen::Vector3f beforePos(ball.x, ball.y, ball.z);
+    Eigen::Vector3f beforePos(ball.x , ball.y, ball.z);
     Eigen::Vector3f v = ball.v;
 
     Eigen::Vector3f n(0., 0., 0.);
@@ -250,6 +250,7 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     ball.x = max(min((float) zMap.rows()-1.f, pos(0)), 0.f);
     ball.y = max(min((float) zMap.cols()-1.f, pos(1)), 0.f);
     ball.z = zMap((int) ball.x, (int) ball.y);
+    ball.radius = 10. + (ball.z/20.);
 //    cout << "After: " << v(0) << "; " << v(1) << "; " << v(2) << endl;
 }
 
@@ -308,13 +309,12 @@ int main( int argc, char * argv[] )
     pawn.setFillColor(sf::Color(200, 200, 200, 200));  /*pawn is transparent*/
     pawn.setOutlineThickness(1.f);
     pawn.setOutlineColor(sf::Color::Black);
-    float radius = 10.f;
 
     buildSphereMap(ZMAP_PATH, zMap, nMap);
     saveZMap(zMap, "zMap_grey.png");
 
 //    Ball ball(683., 350.);
-    Ball ball(950, 490, zMap(950, 490), Eigen::Vector3f(40., -5., 0.));
+    Ball ball(950, 480, zMap(950, 480), Eigen::Vector3f(40., 5., 0.));
 
     Clock clock;
 
@@ -342,9 +342,8 @@ int main( int argc, char * argv[] )
         //TODO: adjust frame rate
         texture.update(*chromaMap);
 
-        radius = 10. + ball.z/10.;
-        pawn.setPosition(ball.x + radius, ball.y + radius);
-        pawn.setRadius(radius);
+        pawn.setRadius(ball.radius);
+        pawn.setPosition(ball.x - ball.radius, ball.y - ball.radius);
 
         window.clear();
         window.draw(sprite);
