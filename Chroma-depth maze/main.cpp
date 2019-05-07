@@ -1,6 +1,7 @@
 
 #define _USE_MATH_DEFINES
-#define MAP_PATH "map_test_2.png"
+#define MAP_PATH "map.png"
+#define ZMAP_PATH "z_map.png"
 
 #include <string>
 #include <thread>
@@ -15,7 +16,7 @@ using namespace sf;
 
 void loadMap (const string mapPath, Image &map)
 {
-    if (!map.loadFromFile(MAP_PATH))
+    if (!map.loadFromFile(mapPath))
     {
         cout << "Couldn't open the map file" << endl;
     }
@@ -24,53 +25,61 @@ void loadMap (const string mapPath, Image &map)
 
 }
 
-void buildSphereMap(Image pixelMap, MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> &normalMap)
+void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> &normalMap)
 {
-    float zMax = 100.;
-    cout << "Started loading zMap" << endl;
-
-    Vector2u size = pixelMap.getSize();
-    sphereMap.resize(size.x, size.y);
-
-    normalMap.resize(sphereMap.rows(), sphereMap.cols());
-
-    cout << "Resized zmap to " << size.x << "; " << size.y << endl;
-    for (unsigned int i = 0; i < size.x; i++)
+    Image pixelMap;
+    if (!pixelMap.loadFromFile(zMapPath))
     {
-        for (unsigned int j = 0; j < size.y; j++)
+        cout << "Couldn't open the zmap file" << endl;
+    }
+    else
+    {
+       float zMax = 100.;
+        cout << "Started loading zMap" << endl;
+
+        Vector2u size = pixelMap.getSize();
+        sphereMap.resize(size.x, size.y);
+
+        normalMap.resize(sphereMap.rows(), sphereMap.cols());
+
+        cout << "Resized zmap to " << size.x << "; " << size.y << endl;
+        for (unsigned int i = 0; i < size.x; i++)
         {
-            float z = -INFINITY;
-            Color color = pixelMap.getPixel(i, j);
-            float R = (float) color.r / 255.;
-            float G = (float) color.g / 255.;
-            float B = (float) color.b / 255.;
-
-            //sets the depth depending on the color
-            /* /!\Doesn't check a few things, like blue when there's red, etc. /!\ */
-            if (R > 0.9)
-                z = (R - G / 2.) * zMax;
-
-            else
+            for (unsigned int j = 0; j < size.y; j++)
             {
-                if (R > 0.1)
-                    z = R * zMax / 2.;
+                float z = -INFINITY;
+                Color color = pixelMap.getPixel(i, j);
+                float R = (float) color.r / 255.;
+                float G = (float) color.g / 255.;
+                float B = (float) color.b / 255.;
+
+                //sets the depth depending on the color
+                /* /!\Doesn't check a few things, like blue when there's red, etc. /!\ */
+                if (R > 0.9)
+                    z = (R - G / 2.) * zMax;
 
                 else
                 {
-                    if (G > 0.9)
-                        z = - B * zMax / 2.;
+                    if (R > 0.1)
+                        z = R * zMax / 2.;
 
                     else
                     {
-                        if (G > 0.1)
-                            z = (G / 2 - B) * zMax;
+                        if (G > 0.9)
+                            z = - B * zMax / 2.;
 
                         else
-                            z = (B - 2.) * zMax;
+                        {
+                            if (G > 0.1)
+                                z = (G / 2 - B) * zMax;
+
+                            else
+                                z = (B - 2.) * zMax;
+                        }
                     }
                 }
+                sphereMap(i, j)  = z;
             }
-            sphereMap(i, j)  = z;
         }
     }
 
@@ -281,7 +290,7 @@ int main( int argc, char * argv[] )
     pawn.setOutlineColor(sf::Color::Black);
     pawn.setOrigin(10.f, 10.f);
 
-    buildSphereMap(*chromaMap, zMap, nMap);
+    buildSphereMap(ZMAP_PATH, zMap, nMap);
 
 //    Ball ball(683., 350.);
     Ball ball(1000, 500, zMap(1000, 500), Eigen::Vector3f(20., 20., 0.));
