@@ -243,7 +243,8 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
 
     Eigen::Vector3f pos = beforePos;
         cout << pos(0) << "; " << pos(1) << endl;
-        cout << "radius: " << ball.radius << endl;
+
+    float radius = ball.radius;
 
     //Collisions
     for (float t = 0.; t < distance; t += 0.1)  //Need to adapt the incrementing of t
@@ -254,16 +255,22 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
 
         if (zMap((int) pos(0), (int) pos(1)) - pos(2) > 0.5)
         {
-            if (zMap((int) pos(0), (int) pos(1)) - pos(2) > 2*ball.radius)  // Need to check depending on the ball's diameter
+            radius = 10. + zMap((int) pos(0), (int) pos(1)) / 20.;
+            pos += radius * direction;
+            pos(0) = max(min(zMap.rows()-1.f, pos(0)), 0.f);
+            pos(1) = max(min(zMap.cols()-1.f, pos(1)), 0.f);
+
+            if (zMap((int) pos(0), (int) pos(1)) - pos(2) > 2*radius)  // There's a wall
             {
-                Eigen::Vector3f temp = (v + normalMap((int) pos(0), (int) pos(1))).normalized() * v.norm();
-                v = Eigen::Vector3f(temp(0), temp(1), 0.);
+                // If we want the ball to bounce we need to have some data about the "orientation" of the wall, for now we'll just stop the speed
+                v = Eigen::Vector3f(0., 0., 0.);
                 pos -= t * direction;
             }
             else
             {
                 v(2) = 0.;
             }
+            pos -= radius * direction;
             break;
         }
     }
@@ -273,8 +280,8 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     ball.x = pos(0);
     ball.y = pos(1);
     ball.z = zMap((int) ball.x, (int) ball.y);
-    ball.radius = 10. + (ball.z/20.);
-//    cout << "After: " << v(0) << "; " << v(1) << "; " << v(2) << endl;
+    ball.radius = 10. + ball.z / 20.;
+    cout << "After: " << v(0) << "; " << v(1) << "; " << v(2) << endl;
 }
 
 void moveBall(Ball* ball)
@@ -329,15 +336,13 @@ int main( int argc, char * argv[] )
 
     /* let's create the graphic image of the ball*/
     CircleShape pawn(10.f);
-    pawn.setFillColor(sf::Color(200, 200, 200, 180));  /*pawn is transparent*/
-    pawn.setOutlineThickness(0.f);
-    pawn.setOutlineColor(sf::Color::Black);
+    pawn.setFillColor(sf::Color(0, 0, 0));
 
     buildSphereMap(ZMAP_PATH, zMap, nMap);
     saveZMap(zMap, "zMap_grey.png");
 
-//    Ball ball(683., 650.);
-    Ball ball(950, 480, zMap(950, 480), Eigen::Vector3f(40., -15., 0.));
+    Ball ball(683., 350.);
+//    Ball ball(950, 480, zMap(950, 480), Eigen::Vector3f(40., -15., 0.));
 
     Clock clock;
 
