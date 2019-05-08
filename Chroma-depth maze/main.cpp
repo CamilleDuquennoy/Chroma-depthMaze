@@ -99,8 +99,24 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
         {
             Eigen::Vector3f n;
 
-            n = Eigen::Vector3f(20., 0., sphereMap(i+10, j) - sphereMap(i-10, j))
-                    .cross(Eigen::Vector3f(0., 20., sphereMap(i, j+10) - sphereMap(i, j-10)));
+            //TODO: don't count if difference is too high
+            float iPlus = sphereMap(i+10, j);
+            float iMinus = sphereMap(i-10, j);
+            float jPlus = sphereMap(i, j+10);
+            float jMinus = sphereMap(i, j-10);
+            float zNormal = sphereMap(i, j);
+
+            if (abs(iPlus - zNormal) > 30.)
+                iPlus = zNormal;
+            if (abs(iMinus - zNormal) > 30.)
+                iMinus = zNormal;
+            if (abs(jPlus - zNormal) > 30.)
+                jPlus = zNormal;
+            if (abs(jMinus - zNormal) > 30.)
+                jMinus = zNormal;
+
+            n = Eigen::Vector3f(20., 0., iPlus - iMinus)
+                    .cross(Eigen::Vector3f(0., 20., jPlus - jMinus));
             n.normalize();
             normalMap(i, j) = n;
         }
@@ -226,20 +242,27 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     Eigen::Vector3f direction = v.normalized();
 
     Eigen::Vector3f pos = beforePos;
-//    cout << "Pos: " << pos(0) << "; " << pos(1) << "; " << pos(2) << endl;
+        cout << pos(0) << "; " << pos(1) << endl;
+        cout << "radius: " << ball.radius << endl;
+
+    //Collisions
     for (float t = 0.; t < distance; t += 0.1)  //Need to adapt the incrementing of t
     {
         pos = beforePos + t * direction;
+        pos(0) = max(min(zMap.rows()-1.f, pos(0)), 0.f);
+        pos(1) = max(min(zMap.cols()-1.f, pos(1)), 0.f);
+
         if (zMap((int) pos(0), (int) pos(1)) - pos(2) > 0.5)
         {
-            pos(2) = zMap((int) pos(0), (int) pos(1));
-            v(2) = 0.;
-
-            if (zMap((int) pos(0), (int) pos(1)) - pos(2) > 20.)  // Need to check depending on the ball's diameter
+            if (zMap((int) pos(0), (int) pos(1)) - pos(2) > 2*ball.radius)  // Need to check depending on the ball's diameter
             {
                 Eigen::Vector3f temp = (v + normalMap((int) pos(0), (int) pos(1))).normalized() * v.norm();
                 v = Eigen::Vector3f(temp(0), temp(1), 0.);
                 pos -= t * direction;
+            }
+            else
+            {
+                v(2) = 0.;
             }
             break;
         }
@@ -247,8 +270,8 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
 
 
     ball.v = v;
-    ball.x = max(min((float) zMap.rows()-1.f, pos(0)), 0.f);
-    ball.y = max(min((float) zMap.cols()-1.f, pos(1)), 0.f);
+    ball.x = pos(0);
+    ball.y = pos(1);
     ball.z = zMap((int) ball.x, (int) ball.y);
     ball.radius = 10. + (ball.z/20.);
 //    cout << "After: " << v(0) << "; " << v(1) << "; " << v(2) << endl;
@@ -306,15 +329,15 @@ int main( int argc, char * argv[] )
 
     /* let's create the graphic image of the ball*/
     CircleShape pawn(10.f);
-    pawn.setFillColor(sf::Color(200, 200, 200, 200));  /*pawn is transparent*/
-    pawn.setOutlineThickness(1.f);
+    pawn.setFillColor(sf::Color(200, 200, 200, 180));  /*pawn is transparent*/
+    pawn.setOutlineThickness(0.f);
     pawn.setOutlineColor(sf::Color::Black);
 
     buildSphereMap(ZMAP_PATH, zMap, nMap);
     saveZMap(zMap, "zMap_grey.png");
 
-//    Ball ball(683., 350.);
-    Ball ball(950, 480, zMap(950, 480), Eigen::Vector3f(40., 5., 0.));
+//    Ball ball(683., 650.);
+    Ball ball(950, 480, zMap(950, 480), Eigen::Vector3f(40., -15., 0.));
 
     Clock clock;
 
@@ -340,7 +363,7 @@ int main( int argc, char * argv[] )
 
         //TODO: add an arrival check, later
         //TODO: adjust frame rate
-        texture.update(*chromaMap);
+//        texture.update(*chromaMap);
 
         pawn.setRadius(ball.radius);
         pawn.setPosition(ball.x - ball.radius, ball.y - ball.radius);
