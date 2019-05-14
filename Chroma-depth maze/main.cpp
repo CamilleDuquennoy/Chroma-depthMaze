@@ -242,7 +242,7 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     Eigen::Vector3f direction = v.normalized();
 
     Eigen::Vector3f pos = beforePos;
-        cout << pos(0) << "; " << pos(1) << endl;
+//        cout << pos(0) << "; " << pos(1) << endl;
 
     float radius = ball.radius;
 
@@ -260,7 +260,7 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
             pos(0) = max(min(zMap.rows()-1.f, pos(0)), 0.f);
             pos(1) = max(min(zMap.cols()-1.f, pos(1)), 0.f);
 
-            if (zMap((int) pos(0), (int) pos(1)) - pos(2) > 2*radius)  // There's a wall
+            if (zMap((int) pos(0), (int) pos(1)) - pos(2) > 35.)  // There's a wall
             {
                 // If we want the ball to bounce we need to have some data about the "orientation" of the wall, for now we'll just stop the speed
                 v = Eigen::Vector3f(0., 0., 0.);
@@ -281,7 +281,7 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     ball.y = pos(1);
     ball.z = zMap((int) ball.x, (int) ball.y);
     ball.radius = 10. + ball.z / 20.;
-    cout << "After: " << v(0) << "; " << v(1) << "; " << v(2) << endl;
+//    cout << "After: " << v(0) << "; " << v(1) << "; " << v(2) << endl;
 }
 
 void moveBall(Ball* ball)
@@ -336,13 +336,15 @@ int main( int argc, char * argv[] )
 
     /* let's create the graphic image of the ball*/
     CircleShape pawn(10.f);
-    pawn.setFillColor(sf::Color(0, 0, 0));
+    pawn.setFillColor(sf::Color::Black);
+    pawn.setOutlineColor(sf::Color(255, 255, 255, 150));
+    pawn.setOutlineThickness(2.f);
 
     buildSphereMap(ZMAP_PATH, zMap, nMap);
     saveZMap(zMap, "zMap_grey.png");
 
-    Ball ball(683., 350.);
-//    Ball ball(950, 480, zMap(950, 480), Eigen::Vector3f(40., -15., 0.));
+//    Ball ball(683., 350.);
+    Ball ball(950, 480, zMap(950, 480), Eigen::Vector3f(20., 20., 0.));
 
     Clock clock;
 
@@ -364,7 +366,6 @@ int main( int argc, char * argv[] )
 //        makeFall(ball, zMap);
         Time elapsed = clock.restart();
         makeFallWithNormals(ball, zMap, nMap, elapsed);
-
 
         //TODO: add an arrival check, later
         //TODO: adjust frame rate

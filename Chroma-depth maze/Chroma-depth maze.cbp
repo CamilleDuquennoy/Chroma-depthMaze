@@ -30,6 +30,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-O2" />
+					<Add option="-std=c++11" />
 					<Add directory="D:/Programs/CodeBlocks/SFML-2.5.1/include" />
 				</Compiler>
 				<Linker>
