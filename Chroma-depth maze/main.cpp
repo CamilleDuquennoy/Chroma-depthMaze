@@ -25,7 +25,7 @@ void loadMap (const string mapPath, Image &map)
 
 }
 
-void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> &normalMap)
+void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> &normalMap, Matrix<Eigen::Vector2i, Dynamic, Dynamic> &holesGrid)
 {
     Image pixelMap;
     if (!pixelMap.loadFromFile(zMapPath))
@@ -39,8 +39,8 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
 
         Vector2u size = pixelMap.getSize();
         sphereMap.resize(size.x, size.y);
-
-        normalMap.resize(sphereMap.rows(), sphereMap.cols());
+        holesGrid.resize(size.x, size.y);
+        normalMap.resize(size.x, size.y);
 
         cout << "Resized zmap to " << size.x << "; " << size.y << endl;
         for (unsigned int i = 0; i < size.x; i++)
@@ -78,7 +78,31 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
                         }
                     }
                 }
-                sphereMap(i, j)  = z;
+                sphereMap(i, j) = z;
+
+                //Let's create the holesGrid
+                holesGrid(i, j) = Eigen::Vector2i(-1, -1);
+                if (z == 0)
+                {
+                    //It's a hole
+                    bool notFound = true;
+                    int a = color.a;
+
+                    for (unsigned int k = 0; k < size.x && notFound; k++)
+                    {
+                        for (unsigned int l = 0; l < size.y; l++)
+                        {
+                            //Doesn't check if it's black
+                            if (pixelMap.getPixel(k, l).a == a)
+                            {
+                                holesGrid(i, j) = Eigen::Vector2i(k, l);
+                                holesGrid(k, l) = Eigen::Vector2i(i, j);
+                                notFound = false;
+                            }
+                        }
+                    }
+
+                }
             }
         }
     }
@@ -121,29 +145,6 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
             normalMap(i, j) = n;
         }
     }
-
-    /*Not sure smoothing is a good idea, need to find a way for red walls*/
-//    cout << "Raw zMap done" << endl;
-//    /*Let's smooth the values*/
-//    for (int i = 0; i < m.rows(); i++)
-//    {
-//        for (int j = 0; j < m.cols(); j++)
-//        {
-//            /*This method is really slow...*/
-//            int count = 0;
-//            sphereMap(i, j) = 0.;
-//            for (int k = max(i - 10, 0); k < min(i + 10, m.rows() - 1); k+= 10)
-//            {
-//                for (int l = max(j - 10, 0); l < min(j + 10, m.cols() - 1); l+= 10)
-//                {
-//                    sphereMap(i, j) += m(k, l);
-//                    count++;
-//                }
-//            }
-//            sphereMap(i, j) /= (float) count;
-//        }
-//    }
-
     cout << "Finished loading zMap" << endl;
 };
 
@@ -275,6 +276,7 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
         }
     }
 
+    //TODO: detect holes in the sphere
 
     ball.v = v;
     ball.x = pos(0);
@@ -282,6 +284,11 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     ball.z = zMap((int) ball.x, (int) ball.y);
     ball.radius = 10. + ball.z / 20.;
 //    cout << "After: " << v(0) << "; " << v(1) << "; " << v(2) << endl;
+
+    if (ball.radius == 0.)
+    {
+        //The ball is in a hole
+    }
 }
 
 void moveBall(Ball* ball)
@@ -327,6 +334,7 @@ int main( int argc, char * argv[] )
 
     MatrixXf zMap;
     Matrix<Eigen::Vector3f, Dynamic, Dynamic> nMap;
+    Matrix<Eigen::Vector2i, Dynamic, Dynamic> holesGrid;
     //TODO: create a good map with photoshop (kinda finished)
 
     Sprite sprite;
@@ -340,7 +348,7 @@ int main( int argc, char * argv[] )
     pawn.setOutlineColor(sf::Color(255, 255, 255, 150));
     pawn.setOutlineThickness(2.f);
 
-    buildSphereMap(ZMAP_PATH, zMap, nMap);
+    buildSphereMap(ZMAP_PATH, zMap, nMap, holesGrid);
     saveZMap(zMap, "zMap_grey.png");
 
 //    Ball ball(683., 350.);
