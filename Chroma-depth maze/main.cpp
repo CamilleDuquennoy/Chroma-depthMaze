@@ -82,25 +82,22 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
 
                 //Let's create the holesGrid
                 holesGrid(i, j) = Eigen::Vector2i(-1, -1);
-                if (z < (1./255.- 2.)*zMax)
+                if (color.a < 250)
                 {
                     //It's a hole
                     bool notFound = true;
                     int a = color.a;
-
-                    if (a != 255)
+                    cout << "blah" << endl;
+                    for (unsigned int k = 0; k < size.x && notFound; k++)
                     {
-                        for (unsigned int k = 0; k < size.x && notFound; k++)
+                        for (unsigned int l = 0; l < size.y; l++)
                         {
-                            for (unsigned int l = 0; l < size.y; l++)
+                            //Doesn't check if it's black
+                            if (abs(pixelMap.getPixel(k, l).a - a) < 50 && ((k-i) * (k-i) + (l-j) * (l-j) > 100))
                             {
-                                //Doesn't check if it's black
-                                    if (pixelMap.getPixel(k, l).a == a)
-                                {
-                                    holesGrid(i, j) = Eigen::Vector2i(k, l);
-                                    holesGrid(k, l) = Eigen::Vector2i(i, j);
-                                    notFound = false;
-                                }
+                                holesGrid(i, j) = Eigen::Vector2i(k, l);
+                                holesGrid(k, l) = Eigen::Vector2i(i, j);
+                                notFound = false;
                             }
                         }
                     }
@@ -286,14 +283,17 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     ball.z = zMap((int) ball.x, (int) ball.y);
     ball.radius = 10. + ball.z / 20.;
 
-    if (ball.radius < 1./255.)
+    if (holesGrid((int) ball.x, (int) ball.y)(0) != -1)
     {
         //The ball is in a hole
-        ball.x = holesGrid((int) ball.x, (int) ball.y)(0);
-        ball.y = holesGrid((int) ball.x, (int) ball.y)(1);
+        float x = holesGrid((int) ball.x, (int) ball.y)(0);
+        float y = holesGrid((int) ball.x, (int) ball.y)(1);
+//        cout << "Hole : " << x << "; " << y << endl;
+        ball.x = x;
+        ball.y = y;
         ball.v = Eigen::Vector3f(-ball.v(0), ball.v(1), -ball.v(2));
-        cout << "Position: " << pos(0) << "; " << pos(1) << "; " << pos(2) << endl;
-        cout << "Speed: " << v(0) << "; " << v(1) << "; " << v(2) << endl;
+//        cout << "Position: " << ball.x << "; " << ball.y << "; " << ball.z << endl;
+//        cout << "Speed: " << ball.v(0) << "; " << ball.v(1) << "; " << ball.v(2) << endl;
     }
 }
 
@@ -347,6 +347,7 @@ void saveHolesMap(Matrix<Eigen::Vector2i, Dynamic, Dynamic> holesGrid, const str
 
             if (holesGrid(i, j)(0) != -1)
             {
+                cout << holesGrid(i, j)(0) << "; " << holesGrid(i, j)(1) << " goes " << i << "; " << j << endl;
                 r = holesGrid(i, j)(0) / holesGrid.rows() * 255.;
                 g = holesGrid(i, j)(1) / holesGrid.cols() * 255.;
                 b = 255.;
@@ -388,7 +389,7 @@ int main( int argc, char * argv[] )
     saveHolesMap(holesGrid, "holesMap.png");
 
 //    Ball ball(683., 350.);
-    Ball ball(1050, 480, zMap(1050, 480), Eigen::Vector3f(20., 5., 0.));
+    Ball ball(1050, 491, zMap(1050, 491), Eigen::Vector3f(20., 0., 0.));
 
     Clock clock;
 
