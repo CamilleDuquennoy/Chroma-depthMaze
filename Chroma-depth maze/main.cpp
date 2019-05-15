@@ -1,7 +1,7 @@
 
 #define _USE_MATH_DEFINES
 #define MAP_PATH "map.png"
-#define ZMAP_PATH "z_map.png"
+#define ZMAP_PATH "z_map_hole.png"
 
 #include <string>
 #include <thread>
@@ -82,22 +82,25 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
 
                 //Let's create the holesGrid
                 holesGrid(i, j) = Eigen::Vector2i(-1, -1);
-                if (z == 0)
+                if (z < (1./255.- 2.)*zMax)
                 {
                     //It's a hole
                     bool notFound = true;
                     int a = color.a;
 
-                    for (unsigned int k = 0; k < size.x && notFound; k++)
+                    if (a != 255)
                     {
-                        for (unsigned int l = 0; l < size.y; l++)
+                        for (unsigned int k = 0; k < size.x && notFound; k++)
                         {
-                            //Doesn't check if it's black
-                            if (pixelMap.getPixel(k, l).a == a)
+                            for (unsigned int l = 0; l < size.y; l++)
                             {
-                                holesGrid(i, j) = Eigen::Vector2i(k, l);
-                                holesGrid(k, l) = Eigen::Vector2i(i, j);
-                                notFound = false;
+                                //Doesn't check if it's black
+                                    if (pixelMap.getPixel(k, l).a == a)
+                                {
+                                    holesGrid(i, j) = Eigen::Vector2i(k, l);
+                                    holesGrid(k, l) = Eigen::Vector2i(i, j);
+                                    notFound = false;
+                                }
                             }
                         }
                     }
@@ -226,7 +229,7 @@ void makeFall(Ball &ball, const MatrixXf map)
     ball.z = z;
 };
 
-void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, const Time timeElapsed)
+void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, Matrix<Eigen::Vector2i, Dynamic, Dynamic> holesGrid, const Time timeElapsed)
 {
     //TODO: frame rate is too slow (3fps)
     Eigen::Vector3f g(0., 0., -1.);   // Gravitation force
@@ -243,7 +246,6 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     Eigen::Vector3f direction = v.normalized();
 
     Eigen::Vector3f pos = beforePos;
-//        cout << pos(0) << "; " << pos(1) << endl;
 
     float radius = ball.radius;
 
@@ -283,11 +285,15 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     ball.y = pos(1);
     ball.z = zMap((int) ball.x, (int) ball.y);
     ball.radius = 10. + ball.z / 20.;
-//    cout << "After: " << v(0) << "; " << v(1) << "; " << v(2) << endl;
 
-    if (ball.radius == 0.)
+    if (ball.radius < 1./255.)
     {
         //The ball is in a hole
+        ball.x = holesGrid((int) ball.x, (int) ball.y)(0);
+        ball.y = holesGrid((int) ball.x, (int) ball.y)(1);
+        ball.v = Eigen::Vector3f(-ball.v(0), ball.v(1), -ball.v(2));
+        cout << "Position: " << pos(0) << "; " << pos(1) << "; " << pos(2) << endl;
+        cout << "Speed: " << v(0) << "; " << v(1) << "; " << v(2) << endl;
     }
 }
 
@@ -326,6 +332,35 @@ void saveZMap(MatrixXf zMap, const string fileName)
     }
 }
 
+void saveHolesMap(Matrix<Eigen::Vector2i, Dynamic, Dynamic> holesGrid, const string fileName)
+{
+    Image img;
+    img.create(holesGrid.rows(), holesGrid.cols());
+
+    for(int i = 0; i < holesGrid.rows(); i++)
+    {
+        for (int j = 0; j < holesGrid.cols(); j++)
+        {
+            float r = 0.;
+            float g = 0.;
+            float b = 0.;
+
+            if (holesGrid(i, j)(0) != -1)
+            {
+                r = holesGrid(i, j)(0) / holesGrid.rows() * 255.;
+                g = holesGrid(i, j)(1) / holesGrid.cols() * 255.;
+                b = 255.;
+            }
+            img.setPixel(i, j, Color(r, g, b));
+        }
+    }
+
+    if (!img.saveToFile(fileName))
+    {
+        cout << "Couldn't save the zMap file" << endl;
+    }
+}
+
 int main( int argc, char * argv[] )
 {
     RenderWindow window(VideoMode(1366, 768), "Chroma-depth maze"); //Need to config size for Geo-cosmos
@@ -350,9 +385,10 @@ int main( int argc, char * argv[] )
 
     buildSphereMap(ZMAP_PATH, zMap, nMap, holesGrid);
     saveZMap(zMap, "zMap_grey.png");
+    saveHolesMap(holesGrid, "holesMap.png");
 
 //    Ball ball(683., 350.);
-    Ball ball(950, 480, zMap(950, 480), Eigen::Vector3f(20., 20., 0.));
+    Ball ball(1050, 480, zMap(1050, 480), Eigen::Vector3f(20., 5., 0.));
 
     Clock clock;
 
@@ -373,7 +409,7 @@ int main( int argc, char * argv[] )
         /*Apply the gravitation physics*/
 //        makeFall(ball, zMap);
         Time elapsed = clock.restart();
-        makeFallWithNormals(ball, zMap, nMap, elapsed);
+        makeFallWithNormals(ball, zMap, nMap, holesGrid, elapsed);
 
         //TODO: add an arrival check, later
         //TODO: adjust frame rate
