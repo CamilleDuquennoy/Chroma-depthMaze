@@ -3,10 +3,11 @@
 #define MAP_PATH "map.png"
 #define ZMAP_PATH "z_map_hole.png"
 
+#include <iostream>
+#include <list>
+#include <math.h>
 #include <string>
 #include <thread>
-#include <iostream>
-#include <math.h>
 #include "header.h"
 
 using namespace Eigen;
@@ -25,7 +26,7 @@ void loadMap (const string mapPath, Image &map)
 
 }
 
-void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> &normalMap, Matrix<Eigen::Vector2i, Dynamic, Dynamic> &holesGrid)
+void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> &normalMap, list<Eigen::Vector4i> &holesList)
 {
     Image pixelMap;
     if (!pixelMap.loadFromFile(zMapPath))
@@ -39,7 +40,6 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
 
         Vector2u size = pixelMap.getSize();
         sphereMap.resize(size.x, size.y);
-        holesGrid.resize(size.x, size.y);
         normalMap.resize(size.x, size.y);
 
         cout << "Resized zmap to " << size.x << "; " << size.y << endl;
@@ -78,33 +78,37 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
                         }
                     }
                 }
-                sphereMap(i, j) = z;
 
-                //Let's create the holesGrid
-                holesGrid(i, j) = Eigen::Vector2i(-1, -1);
+                //Let's create the holesList
                 if (color.a < 250)
                 {
+                    cout << "a hole at " << i << "; " << j << endl;
                     //It's a hole
-                    bool notFound = true;
                     int a = color.a;
-                    cout << "blah" << endl;
-                    for (unsigned int k = 0; k < size.x && notFound; k++)
+                    z = -2.*zMax;
+
+                    Eigen::Vector4i newHole(i, j, -1, -1);
+                    for (Eigen::Vector4i hole : holesList)
                     {
-                        for (unsigned int l = 0; l < size.y; l++)
-                        {
-                            //Doesn't check if it's black
-                            if (abs(pixelMap.getPixel(k, l).a - a) < 50 && ((k-i) * (k-i) + (l-j) * (l-j) > 100))
-                            {
-                                holesGrid(i, j) = Eigen::Vector2i(k, l);
-                                holesGrid(k, l) = Eigen::Vector2i(i, j);
-                                notFound = false;
-                            }
+                        int k = hole(0);
+                        int l = hole(1);
+
+                        if (abs(pixelMap.getPixel(k, l).a - a) < 50 && (pow(k-i, 2) + pow(l-j, 2) > 100))
+                        {   //the two first int are the start of the hole, the next two the arrival point
+                            newHole(2) = k;
+                            newHole(3) = l;
+                            cout << "New hole at: " << newHole(0) << "; " << newHole(1) << " arriving at: " << newHole(2) << "; " << newHole(3) << endl;
                         }
                     }
-
+                    holesList.push_back(newHole);
+                    if (newHole(2) !=-1)
+                        holesList.push_back(Eigen::Vector4i(newHole(2) , newHole(3), i, j));
                 }
+
+                sphereMap(i, j) = z;
             }
         }
+        holesList.remove_if([](Eigen::Vector4i h){ return h(2) == -1;});
     }
 
     /*Let's create the normal map
@@ -226,7 +230,7 @@ void makeFall(Ball &ball, const MatrixXf map)
     ball.z = z;
 };
 
-void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, Matrix<Eigen::Vector2i, Dynamic, Dynamic> holesGrid, const Time timeElapsed)
+void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, list<Eigen::Vector4i> holesList, const Time timeElapsed)
 {
     //TODO: frame rate is too slow (3fps)
     Eigen::Vector3f g(0., 0., -1.);   // Gravitation force
@@ -235,8 +239,7 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     Eigen::Vector3f v = ball.v;
 
     Eigen::Vector3f n(0., 0., 0.);
-    if (ball.z - zMap((int) ball.x, (int) ball.y) < 5.)
-        n = normalMap((int) ball.x, (int) ball.y);
+    n = normalMap((int) ball.x, (int) ball.y);
     v += 10. * timeElapsed.asSeconds() * (g + n);
 
     float distance = (timeElapsed.asSeconds() * v).norm();
@@ -275,26 +278,26 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
         }
     }
 
-    //TODO: detect holes in the sphere
+    // Is the ball deep?
+    if (zMap((int) pos(0), (int) pos(1)) < -195.)
+    {
+        for(Eigen::Vector4i hole : holesList)
+        {
+            if (pow(pos(0) - hole(0), 2) + pow(pos(1) - hole(1), 2) <= 100.)   // The ball is close to the hole
+            {
+                // Need to shift the arrival position
+                v = Eigen::Vector3f(-v(0), v(1), -v(2));
+                pos = Eigen::Vector3f(hole(2), hole(3), zMap(hole(2), hole(3))) + 20.*v.normalized();
+                cout << "New position :" << pos(0) << "; " << pos(1) << endl;
+            }
+        }
+    }
 
     ball.v = v;
     ball.x = pos(0);
     ball.y = pos(1);
     ball.z = zMap((int) ball.x, (int) ball.y);
     ball.radius = 10. + ball.z / 20.;
-
-    if (holesGrid((int) ball.x, (int) ball.y)(0) != -1)
-    {
-        //The ball is in a hole
-        float x = holesGrid((int) ball.x, (int) ball.y)(0);
-        float y = holesGrid((int) ball.x, (int) ball.y)(1);
-//        cout << "Hole : " << x << "; " << y << endl;
-        ball.x = x;
-        ball.y = y;
-        ball.v = Eigen::Vector3f(-ball.v(0), ball.v(1), -ball.v(2));
-//        cout << "Position: " << ball.x << "; " << ball.y << "; " << ball.z << endl;
-//        cout << "Speed: " << ball.v(0) << "; " << ball.v(1) << "; " << ball.v(2) << endl;
-    }
 }
 
 void moveBall(Ball* ball)
@@ -332,35 +335,6 @@ void saveZMap(MatrixXf zMap, const string fileName)
     }
 }
 
-void saveHolesMap(Matrix<Eigen::Vector2i, Dynamic, Dynamic> holesGrid, const string fileName)
-{
-    Image img;
-    img.create(holesGrid.rows(), holesGrid.cols());
-
-    for(int i = 0; i < holesGrid.rows(); i++)
-    {
-        for (int j = 0; j < holesGrid.cols(); j++)
-        {
-            float r = 0.;
-            float g = 0.;
-            float b = 0.;
-
-            if (holesGrid(i, j)(0) != -1)
-            {
-                cout << holesGrid(i, j)(0) << "; " << holesGrid(i, j)(1) << " goes " << i << "; " << j << endl;
-                r = holesGrid(i, j)(0) / holesGrid.rows() * 255.;
-                g = holesGrid(i, j)(1) / holesGrid.cols() * 255.;
-                b = 255.;
-            }
-            img.setPixel(i, j, Color(r, g, b));
-        }
-    }
-
-    if (!img.saveToFile(fileName))
-    {
-        cout << "Couldn't save the zMap file" << endl;
-    }
-}
 
 int main( int argc, char * argv[] )
 {
@@ -370,8 +344,8 @@ int main( int argc, char * argv[] )
 
     MatrixXf zMap;
     Matrix<Eigen::Vector3f, Dynamic, Dynamic> nMap;
-    Matrix<Eigen::Vector2i, Dynamic, Dynamic> holesGrid;
-    //TODO: create a good map with photoshop (kinda finished)
+    list<Eigen::Vector4i> holesList;
+    //TODO: create a good map with photoshop (finished for the dev part only)
 
     Sprite sprite;
     Texture texture;
@@ -384,12 +358,15 @@ int main( int argc, char * argv[] )
     pawn.setOutlineColor(sf::Color(255, 255, 255, 150));
     pawn.setOutlineThickness(2.f);
 
-    buildSphereMap(ZMAP_PATH, zMap, nMap, holesGrid);
+    buildSphereMap(ZMAP_PATH, zMap, nMap, holesList);
+    cout << "Holes' list :" << endl;
+    for (Vector4i hole : holesList)
+        cout << hole(0) << "; " << hole(1) << "; " << hole(2) << "; " << hole(3) << endl;
     saveZMap(zMap, "zMap_grey.png");
-    saveHolesMap(holesGrid, "holesMap.png");
 
 //    Ball ball(683., 350.);
-    Ball ball(1050, 491, zMap(1050, 491), Eigen::Vector3f(20., 0., 0.));
+    Ball ball(300, 490, Eigen::Vector3f(-20., 0., 0.));
+//    Ball ball(1050, 491, Eigen::Vector3f(20., 0., 0.));
 
     Clock clock;
 
@@ -408,12 +385,10 @@ int main( int argc, char * argv[] )
         }
 
         /*Apply the gravitation physics*/
-//        makeFall(ball, zMap);
         Time elapsed = clock.restart();
-        makeFallWithNormals(ball, zMap, nMap, holesGrid, elapsed);
+        makeFallWithNormals(ball, zMap, nMap, holesList, elapsed);
 
         //TODO: add an arrival check, later
-        //TODO: adjust frame rate
 //        texture.update(*chromaMap);
 
         pawn.setRadius(ball.radius);

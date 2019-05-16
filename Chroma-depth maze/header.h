@@ -32,7 +32,7 @@ class Ball
             v = Eigen::Vector3f(0., 0., 0.);
         }
 
-        Ball (float x, float y, float z, Eigen::Vector3f v)
+        Ball (float x, float y, Eigen::Vector3f v)
         {
             this->x = x;
             this->y = y;
