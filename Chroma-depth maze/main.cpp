@@ -53,8 +53,8 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
                 float G = (float) color.g / 255.;
                 float B = (float) color.b / 255.;
 
-                //sets the depth depending on the color
-                /* /!\Doesn't check a few things, like blue when there's red, etc. /!\ */
+                /* Sets the depth depending on the color
+                /!\Doesn't check a few things, like blue when there's red, etc. */
                 if (R > 0.99)
                     z = (R - G / 2. + B / 2.) * zMax;
 
@@ -79,11 +79,10 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
                     }
                 }
 
-                //Let's create the holesList
+                /* Let's create the holes list */
                 if (color.a < 250)
                 {
-                    cout << "a hole at " << i << "; " << j << endl;
-                    //It's a hole
+                    /* It's a hole */
                     int a = color.a;
                     z = -2.*zMax;
 
@@ -94,10 +93,9 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
                         int l = hole(1);
 
                         if (abs(pixelMap.getPixel(k, l).a - a) < 50 && (pow(k-i, 2) + pow(l-j, 2) > 100))
-                        {   //the two first int are the start of the hole, the next two the arrival point
+                        {   /* The two first int are the start of the hole, the next two the arrival point */
                             newHole(2) = k;
                             newHole(3) = l;
-                            cout << "New hole at: " << newHole(0) << "; " << newHole(1) << " arriving at: " << newHole(2) << "; " << newHole(3) << endl;
                         }
                     }
                     holesList.push_back(newHole);
@@ -111,8 +109,8 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
         holesList.remove_if([](Eigen::Vector4i h){ return h(2) == -1;});
     }
 
-    /*Let's create the normal map
-    To have a good normal, we have a 10pixel margin where the normal is not right*/
+    /* Let's create the normal map
+    To have a good normal, we have a 10pixel margin where the normal is not right */
     for (int i = 0; i < normalMap.rows(); i++)
     {
         for (int j = 0; j < normalMap.cols(); j++)
@@ -127,7 +125,6 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
         {
             Eigen::Vector3f n;
 
-            //TODO: don't count if difference is too high
             float iPlus = sphereMap(i+10, j);
             float iMinus = sphereMap(i-10, j);
             float jPlus = sphereMap(i, j+10);
@@ -149,7 +146,7 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
             normalMap(i, j) = n;
         }
     }
-    cout << "Finished loading zMap" << endl;
+    cout << "Finished loading zMap" << endl << endl;
 };
 
 void makeFall(Ball &ball, const MatrixXf map)
@@ -232,8 +229,7 @@ void makeFall(Ball &ball, const MatrixXf map)
 
 void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, list<Eigen::Vector4i> holesList, const Time timeElapsed)
 {
-    //TODO: frame rate is too slow (3fps)
-    Eigen::Vector3f g(0., 0., -1.);   // Gravitation force
+    Eigen::Vector3f g(0., 0., -1.);   /* Gravitation force */
 
     Eigen::Vector3f beforePos(ball.x , ball.y, ball.z);
     Eigen::Vector3f v = ball.v;
@@ -249,8 +245,8 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
 
     float radius = ball.radius;
 
-    //Collisions
-    for (float t = 0.; t < distance; t += 0.1)  //Need to adapt the incrementing of t
+    /* Collisions */
+    for (float t = 0.; t < distance; t += 0.1)
     {
         pos = beforePos + t * direction;
         pos(0) = max(min(zMap.rows()-1.f, pos(0)), 0.f);
@@ -263,7 +259,7 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
             pos(0) = max(min(zMap.rows()-1.f, pos(0)), 0.f);
             pos(1) = max(min(zMap.cols()-1.f, pos(1)), 0.f);
 
-            if (zMap((int) pos(0), (int) pos(1)) - pos(2) > 35.)  // There's a wall
+            if (zMap((int) pos(0), (int) pos(1)) - pos(2) > 35.)    /* There's a wall */
             {
                 // If we want the ball to bounce we need to have some data about the "orientation" of the wall, for now we'll just stop the speed
                 v = Eigen::Vector3f(0., 0., 0.);
@@ -278,17 +274,15 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
         }
     }
 
-    // Is the ball deep?
+    /* Is the ball deep? */
     if (zMap((int) pos(0), (int) pos(1)) < -195.)
     {
         for(Eigen::Vector4i hole : holesList)
         {
-            if (pow(pos(0) - hole(0), 2) + pow(pos(1) - hole(1), 2) <= 100.)   // The ball is close to the hole
+            if (pow(pos(0) - hole(0), 2) + pow(pos(1) - hole(1), 2) <= 100.)   /* The ball is close to the hole */
             {
-                // Need to shift the arrival position
                 v = Eigen::Vector3f(-v(0), v(1), -v(2));
                 pos = Eigen::Vector3f(hole(2), hole(3), zMap(hole(2), hole(3))) + 20.*v.normalized();
-                cout << "New position :" << pos(0) << "; " << pos(1) << endl;
             }
         }
     }
@@ -359,9 +353,11 @@ int main( int argc, char * argv[] )
     pawn.setOutlineThickness(2.f);
 
     buildSphereMap(ZMAP_PATH, zMap, nMap, holesList);
+
     cout << "Holes' list :" << endl;
     for (Vector4i hole : holesList)
-        cout << hole(0) << "; " << hole(1) << "; " << hole(2) << "; " << hole(3) << endl;
+        cout << hole(0) << "; " << hole(1) << "; " << hole(2) << "; " << hole(3) << endl << endl;
+
     saveZMap(zMap, "zMap_grey.png");
 
 //    Ball ball(683., 350.);
@@ -369,23 +365,41 @@ int main( int argc, char * argv[] )
 //    Ball ball(1050, 491, Eigen::Vector3f(20., 0., 0.));
 
     Clock clock;
+    Time elapsed;
 
     while(window.isOpen())
     {
         Event event;
         while(window.pollEvent(event))
         {
-            if(event.type == Event::Closed)
+            switch (event.type)
             {
+            case Event::Closed:
                 window.close();
                 return 0;
-            }
+                break;
 
-            //TODO: add joystick events to moveBall or moveWorld
+            /* The window stops when the focus is lost */
+            case Event::LostFocus:
+            {
+                Event nextEvent;
+                bool noFocus = true;
+
+                while(window.waitEvent(nextEvent) && noFocus)
+                {
+                    if (event.type != Event::GainedFocus)
+                        noFocus = false;
+                        clock.restart();
+                }
+            }break;
+
+            default:
+                break;
+            }
         }
 
         /*Apply the gravitation physics*/
-        Time elapsed = clock.restart();
+        elapsed = clock.restart();
         makeFallWithNormals(ball, zMap, nMap, holesList, elapsed);
 
         //TODO: add an arrival check, later
