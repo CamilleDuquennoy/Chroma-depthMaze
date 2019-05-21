@@ -381,17 +381,28 @@ int main( int argc, char * argv[] )
 
             /* The window stops when the focus is lost */
             case Event::LostFocus:
-            {
-                Event nextEvent;
-                bool noFocus = true;
-
-                while(window.waitEvent(nextEvent) && noFocus)
                 {
-                    if (event.type != Event::GainedFocus)
-                        noFocus = false;
-                        clock.restart();
+                    Event nextEvent;
+                    bool noFocus = true;
+
+                    while(window.waitEvent(nextEvent) && noFocus)
+                    {
+                        if (event.type != Event::GainedFocus)
+                            noFocus = false;
+                            clock.restart();
+                    }
                 }
-            }break;
+                break;
+
+            /* A joystick has been connected */
+            case Event::JoystickConnected:
+                cout << "Joystick " << event.joystickConnect.joystickId << " connected" << endl;
+                break;
+
+            /* A joystick has been disconnected */
+            case Event::JoystickDisconnected:
+                cout << "Joystick " << event.joystickConnect.joystickId << " disconnected" << endl;
+                break;
 
             default:
                 break;
