@@ -333,6 +333,7 @@ void saveZMap(MatrixXf zMap, const string fileName)
 int main( int argc, char * argv[] )
 {
     RenderWindow window(VideoMode(1366, 768), "Chroma-depth maze"); //Need to config size for Geo-cosmos
+    window.setJoystickThreshold(90);    //Need to adapt to the game controller
     Image* chromaMap = new Image();
     loadMap(MAP_PATH, *chromaMap);
 
@@ -402,6 +403,22 @@ int main( int argc, char * argv[] )
             /* A joystick has been disconnected */
             case Event::JoystickDisconnected:
                 cout << "Joystick " << event.joystickConnect.joystickId << " disconnected" << endl;
+                break;
+
+            case Event::JoystickButtonPressed:
+                cout << "Joystick button " << event.joystickButton.button << " pressed" << endl;
+                break;
+
+            case Event::JoystickMoved:
+                cout << "Joystick " << event.joystickMove.joystickId << " moved in " << event.joystickMove.axis << " direction" << endl;
+                break;
+
+            case Event::KeyPressed:
+                cout << "Key " << event.key.code << " pressed" << endl;
+                break;
+
+            case Event::MouseButtonPressed:
+                cout << "Mouse button " << event.mouseButton.button << " pressed" << endl;
                 break;
 
             default:

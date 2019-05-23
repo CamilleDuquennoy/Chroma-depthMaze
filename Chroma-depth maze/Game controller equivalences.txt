@@ -1,0 +1,32 @@
+Joystick ID :		0
+
+Left joystick axis:
+	Left/Right:	0
+	Up/Down:	1
+
+Right joystick axis:
+	Left/Right:	2
+	Up/Down:	3
+
+L2 axis: 		4
+R2 axis:		5
+
+
+Cross buttons axis:
+	Left/Right:	6
+	Up/Down:	7
+
+Joystick buttons:
+	Square:		0
+	Cross:		1
+	Circle:		2
+	Triangle:	3
+	L1:		4
+	R1:		5
+	L2:		6
+	R2:		7
+	Share:		8
+	Options:	9
+	Left Joystick:	10
+	Right Joystick:	11
+	Playstation:	12
