@@ -304,6 +304,11 @@ void moveWorld()
     //TODO: get other joystick input to turn the world
 };
 
+void centerMap(Ball &ball, Image &chromaMap)
+{
+
+}
+
 void wrapMapToSphere(Image image)
 {
     //TODO: the function, but later
@@ -329,6 +334,67 @@ void saveZMap(MatrixXf zMap, const string fileName)
     }
 }
 
+void manageEvents(Event event, Window &window, Ball &ball, Clock &clock, Image &chromaMap)
+{
+    switch (event.type)
+        {
+        case Event::Closed:
+            window.close();
+            break;
+
+        /* The window stops when the focus is lost */
+        case Event::LostFocus:
+            {
+                Event nextEvent;
+                bool noFocus = true;
+
+                while(window.waitEvent(nextEvent) && noFocus)
+                {
+                    if (event.type != Event::GainedFocus)
+                        noFocus = false;
+                        clock.restart();
+                }
+            }
+            break;
+
+        /* A joystick has been connected */
+        case Event::JoystickConnected:
+            cout << "Joystick " << event.joystickConnect.joystickId << " connected" << endl;
+            break;
+
+        /* A joystick has been disconnected */
+        case Event::JoystickDisconnected:
+            cout << "Joystick " << event.joystickConnect.joystickId << " disconnected" << endl;
+            break;
+
+        case Event::JoystickButtonPressed:
+            cout << "Joystick button " << event.joystickButton.button << " pressed" << endl;
+
+            if (event.joystickButton.button == 1)
+            {
+                /* We have to center the map on the ball */
+                cout << "Centering the map" << endl;
+                centerMap(ball, chromaMap);
+            }
+
+            break;
+
+        case Event::JoystickMoved:
+            cout << "Joystick " << event.joystickMove.joystickId << " moved in " << event.joystickMove.axis << " direction" << endl;
+            break;
+
+        case Event::KeyPressed:
+            cout << "Key " << event.key.code << " pressed" << endl;
+            break;
+
+        case Event::MouseButtonPressed:
+            cout << "Mouse button " << event.mouseButton.button << " pressed" << endl;
+            break;
+
+        default:
+            break;
+        }
+}
 
 int main( int argc, char * argv[] )
 {
@@ -373,57 +439,8 @@ int main( int argc, char * argv[] )
         Event event;
         while(window.pollEvent(event))
         {
-            switch (event.type)
-            {
-            case Event::Closed:
-                window.close();
-                return 0;
-                break;
-
-            /* The window stops when the focus is lost */
-            case Event::LostFocus:
-                {
-                    Event nextEvent;
-                    bool noFocus = true;
-
-                    while(window.waitEvent(nextEvent) && noFocus)
-                    {
-                        if (event.type != Event::GainedFocus)
-                            noFocus = false;
-                            clock.restart();
-                    }
-                }
-                break;
-
-            /* A joystick has been connected */
-            case Event::JoystickConnected:
-                cout << "Joystick " << event.joystickConnect.joystickId << " connected" << endl;
-                break;
-
-            /* A joystick has been disconnected */
-            case Event::JoystickDisconnected:
-                cout << "Joystick " << event.joystickConnect.joystickId << " disconnected" << endl;
-                break;
-
-            case Event::JoystickButtonPressed:
-                cout << "Joystick button " << event.joystickButton.button << " pressed" << endl;
-                break;
-
-            case Event::JoystickMoved:
-                cout << "Joystick " << event.joystickMove.joystickId << " moved in " << event.joystickMove.axis << " direction" << endl;
-                break;
-
-            case Event::KeyPressed:
-                cout << "Key " << event.key.code << " pressed" << endl;
-                break;
-
-            case Event::MouseButtonPressed:
-                cout << "Mouse button " << event.mouseButton.button << " pressed" << endl;
-                break;
-
-            default:
-                break;
-            }
+            manageEvents(event, window, ball, clock, *chromaMap);
+            if (!window.isOpen()) return 0;
         }
 
         /*Apply the gravitation physics*/
@@ -431,7 +448,7 @@ int main( int argc, char * argv[] )
         makeFallWithNormals(ball, zMap, nMap, holesList, elapsed);
 
         //TODO: add an arrival check, later
-//        texture.update(*chromaMap);
+        texture.update(*chromaMap);
 
         pawn.setRadius(ball.radius);
         pawn.setPosition(ball.x - ball.radius, ball.y - ball.radius);
