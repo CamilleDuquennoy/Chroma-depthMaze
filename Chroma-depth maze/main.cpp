@@ -3,6 +3,10 @@
 #define MAP_PATH "map.png"
 #define ZMAP_PATH "z_map_hole.png"
 
+#ifndef M_PI
+ #define M_PI 3.14159
+#endif
+
 #include <iostream>
 #include <list>
 #include <math.h>
@@ -306,7 +310,28 @@ void moveWorld()
 
 void centerMap(Ball &ball, Image &chromaMap)
 {
+    Vector2u size = chromaMap.getSize();
 
+    float rho = size.x / 2. / M_PI;
+    float theta;
+    float phi;
+
+    float dX = ball.x - size.x / 2.;
+    float dPhi = ball.y - size.y / 2. / size.x * M_PI;
+
+    Image newChromaMap;
+    newChromaMap.create(size.x, size.y);
+    for (unsigned int i = 0; i < size.x; i++)
+    {
+        for (unsigned int j = 0; j < size.y; j++)
+        {
+            theta = i / (float) size.x * 2. * M_PI;
+            phi = j / (float) size.y * 2. * M_PI;
+            int newI = dX + rho * cos(theta) * sin(phi + dPhi);
+            int newJ = rho * sin(theta) * sin(phi + dPhi);
+            newChromaMap.setPixel(newI, newJ, chromaMap.getPixel(i, j));
+        }
+    }
 }
 
 void wrapMapToSphere(Image image)
