@@ -312,7 +312,7 @@ void moveWorld()
 
 void centerMap(CircleShape pawn, Image &chromaMap)
 {
-    Vector2u size = chromaMap.getSize();
+    sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
 
     float theta;
     float phi;
@@ -331,16 +331,16 @@ void centerMap(CircleShape pawn, Image &chromaMap)
     {
         for (int j = 0; j < size.y; j++)
         {
-//            theta = i / (float) size.x * 2. * M_PI;
-//            phi = j / (float) size.y * 2. * M_PI;
+            theta = (float) i / size.x * 2. * M_PI;
+            phi = (float) j / size.y * 2. * M_PI;
 
-            int newTheta = (i - dTheta) * cos(dPhi);
-            int newI = (int) newTheta / (2. * M_PI) * size.x;
+            float newTheta = (theta - dTheta) * cos(dPhi);
+            int newI = (float) newTheta / (2. * M_PI) * size.x;
             while (newI < 0) newI += size.x;
             newI %= size.x;
 
-            int newPhi = phi - dPhi;
-            int newJ = (int) newPhi / (2.*M_PI) * size.y;
+            float newPhi = phi - dPhi;
+            int newJ = (float) newPhi / (2.*M_PI) * size.y;
 //            int newJ = j + dY;
 
             if (newJ < 0) newJ *= -1;
@@ -350,7 +350,7 @@ void centerMap(CircleShape pawn, Image &chromaMap)
                 newJ = size.y - (newJ % size.y);
             }
 
-            newChromaMap.setPixel(newI, j, chromaMap.getPixel(i, j));
+            newChromaMap.setPixel(i, j, chromaMap.getPixel(newI, newJ));
         }
     }
     pawn.setPosition(size.x / 2., size.y / 2.);
@@ -476,7 +476,7 @@ int main( int argc, char * argv[] )
 
     saveZMap(zMap, "zMap_grey.png");
 
-    Ball ball(983., 684.); //center
+    Ball ball(683., 584.); //center
 //    Ball ball(1050, 491, Eigen::Vector3f(20., 0., 0.));
 //    Ball ball(300, 490, Eigen::Vector3f(-20., 0., 0.));
     ball.z = zMap(ball.x, ball.y);
