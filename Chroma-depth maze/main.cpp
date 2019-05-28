@@ -294,6 +294,8 @@ void makeFallWithNormals(Ball &ball, const MatrixXf zMap, const Matrix<Eigen::Ve
     ball.v = v;
     ball.x = pos(0);
     ball.y = pos(1);
+    ball.dX = ball.x - beforePos(0);
+    ball.dY = ball.y - beforePos(1);
     ball.z = zMap((int) ball.x, (int) ball.y);
     ball.radius = 10. + ball.z / 20.;
 }
@@ -308,30 +310,52 @@ void moveWorld()
     //TODO: get other joystick input to turn the world
 };
 
-void centerMap(Ball &ball, Image &chromaMap)
+void centerMap(CircleShape pawn, Image &chromaMap)
 {
     Vector2u size = chromaMap.getSize();
 
-    float rho = size.x / 2. / M_PI;
     float theta;
     float phi;
 
-    float dX = ball.x - size.x / 2.;
-    float dPhi = ball.y - size.y / 2. / size.x * M_PI;
+    float dX = (float) pawn.getPosition().x + pawn.getRadius()- size.x / 2.;
+    float dY = (float) pawn.getPosition().y + pawn.getRadius() - size.y / 2.;
+    float dTheta = dX / (float) size.x * 2. * M_PI;
+    float dPhi = dY / (float) size.y * 2. * M_PI;
+
+    cout << dX << "; " << dY << endl;
 
     Image newChromaMap;
     newChromaMap.create(size.x, size.y);
-    for (unsigned int i = 0; i < size.x; i++)
+
+    for (int i = 0; i < size.x; i++)
     {
-        for (unsigned int j = 0; j < size.y; j++)
+        for (int j = 0; j < size.y; j++)
         {
-            theta = i / (float) size.x * 2. * M_PI;
-            phi = j / (float) size.y * 2. * M_PI;
-            int newI = dX + rho * cos(theta) * sin(phi + dPhi);
-            int newJ = rho * sin(theta) * sin(phi + dPhi);
-            newChromaMap.setPixel(newI, newJ, chromaMap.getPixel(i, j));
+//            theta = i / (float) size.x * 2. * M_PI;
+//            phi = j / (float) size.y * 2. * M_PI;
+
+            int newTheta = (i - dTheta) * cos(dPhi);
+            int newI = (int) newTheta / (2. * M_PI) * size.x;
+            while (newI < 0) newI += size.x;
+            newI %= size.x;
+
+            int newPhi = phi - dPhi;
+            int newJ = (int) newPhi / (2.*M_PI) * size.y;
+//            int newJ = j + dY;
+
+            if (newJ < 0) newJ *= -1;
+            if (newJ >= (int) size.y)
+            {
+                cout << newI - i << "; " << newJ - j << endl;
+                newJ = size.y - (newJ % size.y);
+            }
+
+            newChromaMap.setPixel(newI, j, chromaMap.getPixel(i, j));
         }
     }
+    pawn.setPosition(size.x / 2., size.y / 2.);
+    cout << "Finished centering the map" << endl;
+    chromaMap.copy(newChromaMap, 0, 0);
 }
 
 void wrapMapToSphere(Image image)
@@ -359,7 +383,7 @@ void saveZMap(MatrixXf zMap, const string fileName)
     }
 }
 
-void manageEvents(Event event, Window &window, Ball &ball, Clock &clock, Image &chromaMap)
+void manageEvents(Event event, Window &window, Ball &ball, CircleShape pawn, Clock &clock, Image &chromaMap)
 {
     switch (event.type)
         {
@@ -399,7 +423,7 @@ void manageEvents(Event event, Window &window, Ball &ball, Clock &clock, Image &
             {
                 /* We have to center the map on the ball */
                 cout << "Centering the map" << endl;
-                centerMap(ball, chromaMap);
+                centerMap(pawn, chromaMap);
             }
 
             break;
@@ -452,9 +476,12 @@ int main( int argc, char * argv[] )
 
     saveZMap(zMap, "zMap_grey.png");
 
-//    Ball ball(683., 350.);
-    Ball ball(300, 490, Eigen::Vector3f(-20., 0., 0.));
+    Ball ball(983., 684.); //center
 //    Ball ball(1050, 491, Eigen::Vector3f(20., 0., 0.));
+//    Ball ball(300, 490, Eigen::Vector3f(-20., 0., 0.));
+    ball.z = zMap(ball.x, ball.y);
+    ball.radius = 10. + ball.z / 20.;
+    pawn.setPosition(ball.x - ball.radius, ball.y - ball.radius);
 
     Clock clock;
     Time elapsed;
@@ -464,19 +491,19 @@ int main( int argc, char * argv[] )
         Event event;
         while(window.pollEvent(event))
         {
-            manageEvents(event, window, ball, clock, *chromaMap);
+            manageEvents(event, window, ball, pawn, clock, *chromaMap);
             if (!window.isOpen()) return 0;
         }
 
         /*Apply the gravitation physics*/
         elapsed = clock.restart();
-        makeFallWithNormals(ball, zMap, nMap, holesList, elapsed);
+//        makeFallWithNormals(ball, zMap, nMap, holesList, elapsed);
 
         //TODO: add an arrival check, later
         texture.update(*chromaMap);
 
         pawn.setRadius(ball.radius);
-        pawn.setPosition(ball.x - ball.radius, ball.y - ball.radius);
+        pawn.setPosition(pawn.getPosition().x + ball.dX, pawn.getPosition().y + ball.dY);
 
         window.clear();
         window.draw(sprite);
