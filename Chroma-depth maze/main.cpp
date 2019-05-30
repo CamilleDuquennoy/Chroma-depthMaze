@@ -316,12 +316,12 @@ void centerMap(Ball ball, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector3
     float phi;
 
     /* We use the opposite rotation */
-    float dX = (float) - ball.x - size.x / 2.;
-    float dY = (float) - ball.y - size.y / 2.;
+    float dX = (float) - ball.x + size.x / 2.;
+    float dY = (float) - ball.y + size.y / 2.;
     float dTheta = dX / (float) size.x * 2. * M_PI;
     float dPhi = dY / (float) size.y * 2. * M_PI;
 
-    cout << dX << "; " << dY << endl;
+    cout << dTheta << "; " << dPhi << endl;
 
     Image newChromaMap;
     newChromaMap.create(size.x, size.y);
@@ -340,21 +340,23 @@ void centerMap(Ball ball, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector3
 
     Matrix3f rotation;
     rotation = phiRot * thetaRot;
+    cout << rotation << endl << endl;
 
     for (int i = 0; i < size.x; i++)
     {
         for (int j = 0; j < size.y; j++)
         {
             theta = (float) i / size.x * 2. * M_PI;
-            phi = (float) j / size.y * 2. * M_PI - M_PI / 2.;
+            phi = (float) j / size.y * M_PI - M_PI / 2.;
 
             Eigen::Vector3f newCartesianPos = rotation * Eigen::Vector3f(sin(phi)*cos(theta), sin(phi)*sin(theta), cos(phi));
 
-            float newPhi = acos(newCartesianPos(2) + M_PI / 2.);
+            float newPhi = acos(newCartesianPos(2)) + M_PI / 2.;
             float newTheta = atan2(newCartesianPos(1), newCartesianPos(0)) + M_PI;
 
-            int newI = (float) newTheta * size.x / (2*M_PI);
-            int newJ = (float) newPhi * size.y / (2*M_PI);
+
+            int newI = min((double) size.x - 1, (float) newTheta * size.x / (2*M_PI));
+            int newJ = min((double) size.y - 1, (float) newPhi * size.y / (2*M_PI));
 
 //            while (newI < 0) newI += size.x;
 //            newI %= size.x;
@@ -366,6 +368,7 @@ void centerMap(Ball ball, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector3
 //                newJ = size.y - (newJ % size.y);
 //            }
 
+//            cout << newI << "; " << newJ << " goes " << i << "; " << j << endl;
             newChromaMap.setPixel(i, j, chromaMap.getPixel(newI, newJ));
             newZMap(i, j) = zMap(newI, newJ);
             newNMap(i, j) = nMap(newI, newJ);
@@ -497,7 +500,7 @@ int main( int argc, char * argv[] )
 
     saveZMap(zMap, "zMap_grey.png");
 
-    Ball ball(683., 584.);
+    Ball ball(683., 384.);
 //    Ball ball(1050, 491, Eigen::Vector3f(20., 0., 0.));
 //    Ball ball(300, 490, Eigen::Vector3f(-20., 0., 0.));
     ball.z = zMap(ball.x, ball.y);
