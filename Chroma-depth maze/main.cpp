@@ -226,7 +226,7 @@ void moveWorld()
     //TODO: get other joystick input to turn the world
 };
 
-void centerMap(Ball &ball, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap)
+void centerMap(Ball &ball, Image &chromaMap, MatrixXf &zMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> &normalMap)
 {
     sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
 
@@ -237,7 +237,7 @@ void centerMap(Ball &ball, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector
     float dX = (float) ball.x - size.x / 2.;
     float dY = (float) ball.y - size.y / 2.;
     float dTheta = dX / (float) size.x * 2. * M_PI;
-    float dPhi = dY / (float) size.y * 2. * M_PI;
+    float dPhi = dY / (float) size.y * M_PI;
 
     cout << dTheta << "; " << dPhi << endl;
 
@@ -247,9 +247,9 @@ void centerMap(Ball &ball, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector
     Matrix<Eigen::Vector3f, Dynamic, Dynamic> newNormalMap(size.x, size.y);
 
     Matrix3f thetaRot;
-    thetaRot <<     1.,         0.,             0.,
-                    0.,     cos(dTheta),    -sin(dTheta),
-                    0.,     sin(dTheta),    cos(dTheta);
+    thetaRot <<     cos(dTheta),    -sin(dTheta), 0.,
+                    sin(dTheta),     cos(dTheta), 0.,
+                    0.,              0.,          1.;
 
     Matrix3f phiRot;
     phiRot <<       cos(dPhi),      0.,     sin(dPhi),
@@ -301,12 +301,12 @@ void centerMap(Ball &ball, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector
             newNormalMap(i, j) = normalMap(newI, newJ);
         }
     }
-    ball.x = size.x / 2.;
-    ball.y = size.y / 2.;
-    ball.z = zMap((int) ball.x, (int) ball.y);
     chromaMap.copy(newChromaMap, 0, 0);
     zMap = newZMap;
     normalMap = newNormalMap;
+    ball.x = size.x / 2.;
+    ball.y = size.y / 2.;
+    ball.z = zMap((int) ball.x, (int) ball.y);
     cout << "Finished centering the map" << endl;
 }
 
@@ -335,7 +335,7 @@ void saveZMap(MatrixXf zMap, const string fileName)
     }
 }
 
-void manageEvents(Event event, Window &window, Ball &ball, Clock &clock, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap)
+void manageEvents(Event event, Window &window, Ball &ball, Clock &clock, Image &chromaMap, MatrixXf &zMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> &normalMap)
 {
     switch (event.type)
         {
@@ -426,8 +426,8 @@ int main( int argc, char * argv[] )
 
     saveZMap(zMap, "zMap_grey.png");
 
-    Ball ball(683.,584.);
-//    Ball ball(1050, 491, Eigen::Vector3f(10, 0., 0.));
+//    Ball ball(583.,484.);
+    Ball ball(1050, 491, Eigen::Vector3f(10, 0., 0.));
 //    Ball ball(300, 490, Eigen::Vector3f(-20., 0., 0.));
     ball.z = zMap(ball.x, ball.y);
 
@@ -445,7 +445,7 @@ int main( int argc, char * argv[] )
 
         /*Apply the gravitation physics*/
         elapsedTime = clock.restart();
-//        makeBallFall(ball, zMap, normalMap, holesList, elapsedTime);
+        makeBallFall(ball, zMap, normalMap, holesList, elapsedTime);
 
         //TODO: add an arrival check, later
         texture.update(*chromaMap);
