@@ -32,8 +32,8 @@ void loadMap (const string mapPath, Image &map)
 
 void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> &normalMap, list<Eigen::Vector4i> &holesList)
 {
-    Image pixelMap;
-    if (!pixelMap.loadFromFile(zMapPath))
+    Image zImage;
+    if (!zImage.loadFromFile(zMapPath))
     {
         cout << "Couldn't open the zmap file" << endl;
     }
@@ -42,7 +42,7 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
        float zMax = 100.;
         cout << "Started loading zMap" << endl;
 
-        Vector2u size = pixelMap.getSize();
+        Vector2u size = zImage.getSize();
         sphereMap.resize(size.x, size.y);
         normalMap.resize(size.x, size.y);
 
@@ -52,13 +52,12 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
             for (unsigned int j = 0; j < size.y; j++)
             {
                 float z = -INFINITY;
-                Color color = pixelMap.getPixel(i, j);
+                Color color = zImage.getPixel(i, j);
                 float R = (float) color.r / 255.;
                 float G = (float) color.g / 255.;
                 float B = (float) color.b / 255.;
 
-                /* Sets the depth depending on the color
-                /!\Doesn't check a few things, like blue when there's red, etc. */
+                /* Sets z depending on the color*/
                 if (R > 0.99)
                     z = (R - G / 2. + B / 2.) * zMax;
 
@@ -96,7 +95,7 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
                         int k = hole(0);
                         int l = hole(1);
 
-                        if (abs(pixelMap.getPixel(k, l).a - a) < 50 && (pow(k-i, 2) + pow(l-j, 2) > 100))
+                        if (abs(zImage.getPixel(k, l).a - a) < 50 && (pow(k-i, 2) + pow(l-j, 2) > 100))
                         {   /* The two first int are the start of the hole, the next two the arrival point */
                             newHole(2) = k;
                             newHole(3) = l;
@@ -113,8 +112,6 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
         holesList.remove_if([](Eigen::Vector4i h){ return h(2) == -1;});
     }
 
-    /* Let's create the normal map
-    To have a good normal, we have a 10pixel margin where the normal is not right */
     for (int i = 0; i < normalMap.rows(); i++)
     {
         for (int j = 0; j < normalMap.cols(); j++)
@@ -153,96 +150,17 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
     cout << "Finished loading zMap" << endl << endl;
 };
 
-void makeFall(Ball &ball, MatrixXf map)
+void makeBallFall(Ball &ball, MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, list<Eigen::Vector4i> holesList, const Time elapsedTime)
 {
-    /*For the moment it doesn't include any speed, gravitation force or anything,
-    it just goes down at eache frame*/
-    //TODO: implement a real gravity
-
-    //For now we assume pixel.x & pixel.y are equal to position in table map
-    int i = (int) ball.x;
-    int j = (int) ball.y;
-    float z = map(i, j);
-    int x = i;
-    int y = j;
-
-    // Get neighbour with lowest z
-//    cout << map(i-1, j-1) << ";" << map(i-1, j) << ";" << map(i-1, j+1) << endl;
-//    cout << map(i, j-1) << ";" << map(i, j) << ";" << map(i, j+1) << endl;
-//    cout << map(i+1, j-1) << ";" << map(i+1, j) << ";" << map(i+1, j+1) << endl;
-    if (map(i-10, j-10) < z && i>9 && j>9)
-    {
-        z = map(i-1, j-1);
-        x = i-1;
-        y = j-1;
-    }
-
-    if (map(i-10, j) <= z && i>9)
-    {
-        z = map(i-1, j);
-        x = i-1;
-        y = j;
-    }
-
-    if (map(i-10, j+10) < z && i > 9 && j < map.cols() - 10)
-    {
-        z = map(i-1, j+1);
-        x = i-1;
-        y = j+1;
-    }
-
-    if (map(i, j-10) <= z && j > 9)
-    {
-        z = map(i, j-1);
-        x = i;
-        y = j-1;
-    }
-
-    if (map(i, j+10) <= z && j < map.cols() - 10)
-    {
-        z = map(i, j+1);
-        x = i;
-        y = j+1;
-    }
-
-    if (map(i+10, j-10) < z && i < map.rows() - 10 && j > 9)
-    {
-        z = map(i+1, j-1);
-        x = i+1;
-        y = j-1;
-    }
-
-    if (map(i+10, j) <= z && i < map.rows() - 10)
-    {
-        z = map(i+1, j);
-        x = i+1;
-        y = j;
-    }
-
-    if (map(i+10, j+10) < z && i < map.rows() - 10 && j < map.cols() - 10)
-    {
-        z = map(i+1, j+1);
-        x = i+1;
-        y = j+1;
-    }
-
-    ball.x = (float) x;
-    ball.y = (float) y;
-    ball.z = z;
-};
-
-void makeFallWithNormals(Ball &ball, MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, list<Eigen::Vector4i> holesList, const Time timeElapsed)
-{
-    Eigen::Vector3f g(0., 0., -1.);   /* Gravitation force */
+    Eigen::Vector3f gravitation(0., 0., -1.);
 
     Eigen::Vector3f beforePos(ball.x , ball.y, ball.z);
     Eigen::Vector3f v = ball.v;
 
-    Eigen::Vector3f n(0., 0., 0.);
-    n = normalMap((int) ball.x, (int) ball.y);
-    v += 10. * timeElapsed.asSeconds() * (g + n);
+    Eigen::Vector3f normal = normalMap((int) ball.x, (int) ball.y);
+    v += 10. * elapsedTime.asSeconds() * (gravitation + normal);
 
-    float distance = (timeElapsed.asSeconds() * v).norm();
+    float distance = (elapsedTime.asSeconds() * v).norm();
     Eigen::Vector3f direction = v.normalized();
 
     Eigen::Vector3f pos = beforePos;
@@ -308,7 +226,7 @@ void moveWorld()
     //TODO: get other joystick input to turn the world
 };
 
-void centerMap(Ball ball, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> nMap)
+void centerMap(Ball &ball, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap)
 {
     sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
 
@@ -316,8 +234,8 @@ void centerMap(Ball ball, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector3
     float phi;
 
     /* We use the opposite rotation */
-    float dX = (float) - ball.x + size.x / 2.;
-    float dY = (float) - ball.y + size.y / 2.;
+    float dX = (float) ball.x - size.x / 2.;
+    float dY = (float) ball.y - size.y / 2.;
     float dTheta = dX / (float) size.x * 2. * M_PI;
     float dPhi = dY / (float) size.y * 2. * M_PI;
 
@@ -326,7 +244,7 @@ void centerMap(Ball ball, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector3
     Image newChromaMap;
     newChromaMap.create(size.x, size.y);
     MatrixXf newZMap(size.x, size.y);
-    Matrix<Eigen::Vector3f, Dynamic, Dynamic> newNMap(size.x, size.y);
+    Matrix<Eigen::Vector3f, Dynamic, Dynamic> newNormalMap(size.x, size.y);
 
     Matrix3f thetaRot;
     thetaRot <<     1.,         0.,             0.,
@@ -342,21 +260,25 @@ void centerMap(Ball ball, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector3
     rotation = phiRot * thetaRot;
     cout << rotation << endl << endl;
 
+    float minTheta = 1000.;
+    float maxTheta = -1000.;
+    float minPhi = 1000.;
+    float maxPhi = -1000;
     for (int i = 0; i < size.x; i++)
     {
         for (int j = 0; j < size.y; j++)
         {
-            theta = (float) i / size.x * 2. * M_PI;
-            phi = (float) j / size.y * M_PI - M_PI / 2.;
+            theta = (float) i / size.x * 2. * M_PI - M_PI;
+            phi = (float) j / size.y * M_PI;
 
             Eigen::Vector3f newCartesianPos = rotation * Eigen::Vector3f(sin(phi)*cos(theta), sin(phi)*sin(theta), cos(phi));
 
-            float newPhi = acos(newCartesianPos(2)) + M_PI / 2.;
+            float newPhi = acos(newCartesianPos(2));
             float newTheta = atan2(newCartesianPos(1), newCartesianPos(0)) + M_PI;
 
 
             int newI = min((double) size.x - 1, (float) newTheta * size.x / (2*M_PI));
-            int newJ = min((double) size.y - 1, (float) newPhi * size.y / (2*M_PI));
+            int newJ = min((double) size.y - 1, (float) newPhi * size.y / (M_PI));
 
 //            while (newI < 0) newI += size.x;
 //            newI %= size.x;
@@ -368,17 +290,23 @@ void centerMap(Ball ball, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector3
 //                newJ = size.y - (newJ % size.y);
 //            }
 
+            maxTheta = max(newTheta, maxTheta);
+            maxPhi = max(newPhi, maxPhi);
+            minPhi = min(newPhi, minPhi);
+            minTheta = min(newTheta, minTheta);
+
 //            cout << newI << "; " << newJ << " goes " << i << "; " << j << endl;
             newChromaMap.setPixel(i, j, chromaMap.getPixel(newI, newJ));
             newZMap(i, j) = zMap(newI, newJ);
-            newNMap(i, j) = nMap(newI, newJ);
+            newNormalMap(i, j) = normalMap(newI, newJ);
         }
     }
     ball.x = size.x / 2.;
     ball.y = size.y / 2.;
+    ball.z = zMap((int) ball.x, (int) ball.y);
     chromaMap.copy(newChromaMap, 0, 0);
     zMap = newZMap;
-    nMap = newNMap;
+    normalMap = newNormalMap;
     cout << "Finished centering the map" << endl;
 }
 
@@ -407,7 +335,7 @@ void saveZMap(MatrixXf zMap, const string fileName)
     }
 }
 
-void manageEvents(Event event, Window &window, Ball &ball, Clock &clock, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> nMap)
+void manageEvents(Event event, Window &window, Ball &ball, Clock &clock, Image &chromaMap, MatrixXf zMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap)
 {
     switch (event.type)
         {
@@ -415,7 +343,6 @@ void manageEvents(Event event, Window &window, Ball &ball, Clock &clock, Image &
             window.close();
             break;
 
-        /* The window stops when the focus is lost */
         case Event::LostFocus:
             {
                 Event nextEvent;
@@ -430,12 +357,10 @@ void manageEvents(Event event, Window &window, Ball &ball, Clock &clock, Image &
             }
             break;
 
-        /* A joystick has been connected */
         case Event::JoystickConnected:
             cout << "Joystick " << event.joystickConnect.joystickId << " connected" << endl;
             break;
 
-        /* A joystick has been disconnected */
         case Event::JoystickDisconnected:
             cout << "Joystick " << event.joystickConnect.joystickId << " disconnected" << endl;
             break;
@@ -445,19 +370,20 @@ void manageEvents(Event event, Window &window, Ball &ball, Clock &clock, Image &
 
             if (event.joystickButton.button == 1)
             {
-                /* We have to center the map on the ball */
                 cout << "Centering the map" << endl;
-                centerMap(ball, chromaMap, zMap, nMap);
+                centerMap(ball, chromaMap, zMap, normalMap);
             }
 
             break;
 
         case Event::JoystickMoved:
-            cout << "Joystick " << event.joystickMove.joystickId << " moved in " << event.joystickMove.axis << " direction" << endl;
+            cout << "Joystick " << event.joystickMove.joystickId << " moved in " << event.joystickMove.axis << " direction" << endl
+            << "At " << event.joystickMove.position << " position" << endl;
             break;
 
         case Event::KeyPressed:
             cout << "Key " << event.key.code << " pressed" << endl;
+            if (event.key.code == 58) centerMap(ball, chromaMap, zMap, normalMap);
             break;
 
         case Event::MouseButtonPressed:
@@ -477,7 +403,7 @@ int main( int argc, char * argv[] )
     loadMap(MAP_PATH, *chromaMap);
 
     MatrixXf zMap;
-    Matrix<Eigen::Vector3f, Dynamic, Dynamic> nMap;
+    Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap;
     list<Eigen::Vector4i> holesList;
     //TODO: create a good map with photoshop (finished for the dev part only)
 
@@ -492,7 +418,7 @@ int main( int argc, char * argv[] )
     pawn.setOutlineColor(sf::Color(255, 255, 255, 150));
     pawn.setOutlineThickness(2.f);
 
-    buildSphereMap(ZMAP_PATH, zMap, nMap, holesList);
+    buildSphereMap(ZMAP_PATH, zMap, normalMap, holesList);
 
     cout << "Holes' list :" << endl;
     for (Vector4i hole : holesList)
@@ -500,26 +426,26 @@ int main( int argc, char * argv[] )
 
     saveZMap(zMap, "zMap_grey.png");
 
-    Ball ball(683., 384.);
-//    Ball ball(1050, 491, Eigen::Vector3f(20., 0., 0.));
+    Ball ball(683.,584.);
+//    Ball ball(1050, 491, Eigen::Vector3f(10, 0., 0.));
 //    Ball ball(300, 490, Eigen::Vector3f(-20., 0., 0.));
     ball.z = zMap(ball.x, ball.y);
 
     Clock clock;
-    Time elapsed;
+    Time elapsedTime;
 
     while(window.isOpen())
     {
         Event event;
         while(window.pollEvent(event))
         {
-            manageEvents(event, window, ball, clock, *chromaMap, zMap, nMap);
+            manageEvents(event, window, ball, clock, *chromaMap, zMap, normalMap);
             if (!window.isOpen()) return 0;
         }
 
         /*Apply the gravitation physics*/
-        elapsed = clock.restart();
-//        makeFallWithNormals(ball, zMap, nMap, holesList, elapsed);
+        elapsedTime = clock.restart();
+//        makeBallFall(ball, zMap, normalMap, holesList, elapsedTime);
 
         //TODO: add an arrival check, later
         texture.update(*chromaMap);
