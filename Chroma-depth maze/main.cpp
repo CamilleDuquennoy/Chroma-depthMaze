@@ -358,7 +358,10 @@ void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Cl
 
         case Event::KeyPressed:
             cout << "Key " << event.key.code << " pressed" << endl;
-            if (event.key.code == 58) centerMap(pawn, chromaMap, referenceMap, rotation);
+
+            if (event.key.code == Keyboard::Enter) centerMap(pawn, chromaMap, referenceMap, rotation);
+            if (event.key.code == Keyboard::Escape) window.create(VideoMode(window.getSize().x, window.getSize().y), "Chroma-depth maze", Style::Default);
+            if (event.key.code == Keyboard::F) window.create(VideoMode(window.getSize().x, window.getSize().y), "Chroma-depth maze", Style::Fullscreen);
             break;
 
         case Event::MouseButtonPressed:
@@ -372,12 +375,12 @@ void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Cl
 
 int main( int argc, char * argv[] )
 {
-    RenderWindow window(VideoMode(1366, 768), "Chroma-depth maze"); //Need to config size for Geo-cosmos
-    window.setJoystickThreshold(90);    //Need to adapt to the game controller
     Image* chromaMap = new Image();
     loadMap(MAP_PATH, *chromaMap);
     Image* referenceMap = new Image();
     loadMap(MAP_PATH, *referenceMap);
+    RenderWindow window(VideoMode(chromaMap->getSize().x, chromaMap->getSize().y), "Chroma-depth maze"); //Need to config size for Geo-cosmos
+    window.setJoystickThreshold(90);    //Need to adapt to the game controller
 
     MatrixXf zMap;
     Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap;
@@ -391,23 +394,24 @@ int main( int argc, char * argv[] )
     sprite.setTexture(texture);
 
     /* let's create the graphic image of the ball*/
-    CircleShape pawn(10.f);
+    CircleShape pawn(20.f);
     pawn.setFillColor(sf::Color::Black);
     pawn.setOutlineColor(sf::Color(255, 255, 255, 150));
     pawn.setOutlineThickness(2.f);
 
     buildSphereMap(ZMAP_PATH, zMap, normalMap, holesList);
 
-    cout << "Holes' list :" << endl;
-    for (Vector4i hole : holesList)
-        cout << hole(0) << "; " << hole(1) << "; " << hole(2) << "; " << hole(3) << endl << endl;
+//    cout << "Holes' list :" << endl;
+//    for (Vector4i hole : holesList)
+//        cout << hole(0) << "; " << hole(1) << "; " << hole(2) << "; " << hole(3) << endl << endl;
 
     saveZMap(zMap, "zMap_grey.png");
 
 //    Ball ball(583.,484.);
-    Ball ball(850, 193, Eigen::Vector3f(10., 0., 0.));
-//    Ball ball(300, 490, Eigen::Vector3f(-20., 0., 0.));
+    Ball ball(960, 580, Eigen::Vector3f(20., 0., 0.));
+//    Ball ball(150, 153, Eigen::Vector3f(10., 0., 0.));
     ball.z = zMap(ball.x, ball.y);
+    ball.radius = 10. + ball.z / 20.;
 
     Clock clock;
     Time elapsedTime;
