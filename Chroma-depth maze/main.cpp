@@ -1,7 +1,6 @@
 
 #define _USE_MATH_DEFINES
-#define MAP_PATH "map.png"
-#define ZMAP_PATH "z_map_hole.png"
+#define ZMAP_PATH "z_maps/z_map_hole_4K.png"
 
 #ifndef M_PI
  #define M_PI 3.14159
@@ -18,15 +17,31 @@ using namespace Eigen;
 using namespace std;
 using namespace sf;
 
+bool is4K = true;
+bool gridOption = true;
+bool textureOption = true;
+bool shadeOption = true;
 
-void loadMap (const string mapPath, Image &map)
+void loadMap(Image &map)
 {
+    mapPath = "maps/map";
+
+    if (is4K) mapPath += "_4K";
+
+    if (gridOption || textureOption || shadeOption) mapPath += "_";
+    if (gridOption) mapPath += "G";
+    if (textureOption) mapPath += "T";
+    if (shadeOption) mapPath += "S";
+
+    mapPath += ".png";
+
+
     if (!map.loadFromFile(mapPath))
     {
         cout << "Couldn't open the map file" << endl;
     }
     else
-    cout << "Map file opened" << endl;
+    cout << "File " << mapPath << " opened" << endl;
 
 }
 
@@ -120,29 +135,30 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
         }
     }
 
-    for (int i = 10; i < normalMap.rows() - 10; i++)
+    int margin = 50;
+    for (int i = margin; i < normalMap.rows() - margin; i++)
     {
-        for (int j = 10; j < normalMap.cols() - 10; j++)
+        for (int j = margin; j < normalMap.cols() - margin; j++)
         {
             Eigen::Vector3f n;
 
-            float iPlus = sphereMap(i+10, j);
-            float iMinus = sphereMap(i-10, j);
-            float jPlus = sphereMap(i, j+10);
-            float jMinus = sphereMap(i, j-10);
+            float iPlus = sphereMap(i+margin, j);
+            float iMinus = sphereMap(i-margin, j);
+            float jPlus = sphereMap(i, j+margin);
+            float jMinus = sphereMap(i, j-margin);
             float zNormal = sphereMap(i, j);
 
-            if (abs(iPlus - zNormal) > 30.)
+            if (abs(iPlus - zNormal) > 50.)
                 iPlus = zNormal;
-            if (abs(iMinus - zNormal) > 30.)
+            if (abs(iMinus - zNormal) > 50.)
                 iMinus = zNormal;
-            if (abs(jPlus - zNormal) > 30.)
+            if (abs(jPlus - zNormal) > 50.)
                 jPlus = zNormal;
-            if (abs(jMinus - zNormal) > 30.)
+            if (abs(jMinus - zNormal) > 50.)
                 jMinus = zNormal;
 
-            n = Eigen::Vector3f(20., 0., iPlus - iMinus)
-                    .cross(Eigen::Vector3f(0., 20., jPlus - jMinus));
+            n = Eigen::Vector3f(2*margin, 0., iPlus - iMinus)
+                    .cross(Eigen::Vector3f(0., 2*margin, jPlus - jMinus));
             n.normalize();
             normalMap(i, j) = n;
         }
@@ -310,7 +326,7 @@ void saveZMap(MatrixXf zMap, const string fileName)
     }
 }
 
-void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Clock &clock, Image &chromaMap, const Image referenceMap, Matrix3f &rotation)
+void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Clock &clock, Image &chromaMap, Image referenceMap, Matrix3f &rotation)
 {
     switch (event.type)
         {
@@ -343,11 +359,31 @@ void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Cl
         case Event::JoystickButtonPressed:
             cout << "Joystick button " << event.joystickButton.button << " pressed" << endl;
 
-            if (event.joystickButton.button == 1)
-            {
-                cout << "Centering the map" << endl;
-                centerMap(pawn, chromaMap, referenceMap, rotation);
-            }
+            switch (event.joystickButton.button)
+                {
+                case 0: /*Square*/
+                    //Grid option
+                    gridOption = !gridOption;
+                    loadMap(referenceMap);
+                    rotateWorld(chromaMap, referenceMap, rotation);
+                    break;
+
+                case 1: /*Cross*/
+                    cout << "Centering the map" << endl;
+                    centerMap(pawn, chromaMap, referenceMap, rotation);
+                    break;
+
+                case 2: /*Circle*/
+                    textureOption = !textureOption;
+                    loadMap(referenceMap);
+                    rotateWorld(chromaMap, referenceMap, rotation);
+                    break;
+
+                case 3: /*Triangle*/
+                    shadeOption = !shadeOption;
+                    loadMap(referenceMap);
+                    rotateWorld(chromaMap, referenceMap, rotation);
+                }
 
             break;
 
@@ -376,10 +412,10 @@ void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Cl
 int main( int argc, char * argv[] )
 {
     Image* chromaMap = new Image();
-    loadMap(MAP_PATH, *chromaMap);
+    loadMap(*chromaMap);
     Image* referenceMap = new Image();
-    loadMap(MAP_PATH, *referenceMap);
-    RenderWindow window(VideoMode(chromaMap->getSize().x, chromaMap->getSize().y), "Chroma-depth maze"); //Need to config size for Geo-cosmos
+    loadMap(*referenceMap);
+    RenderWindow window(VideoMode(chromaMap->getSize().x, chromaMap->getSize().y), "Chroma-depth maze", Style::Fullscreen); //Need to config size for Geo-cosmos
     window.setJoystickThreshold(90);    //Need to adapt to the game controller
 
     MatrixXf zMap;
@@ -394,22 +430,22 @@ int main( int argc, char * argv[] )
     sprite.setTexture(texture);
 
     /* let's create the graphic image of the ball*/
-    CircleShape pawn(20.f);
+    CircleShape pawn(2*30.f);
     pawn.setFillColor(sf::Color::Black);
-    pawn.setOutlineColor(sf::Color(255, 255, 255, 150));
-    pawn.setOutlineThickness(2.f);
+    pawn.setOutlineColor(sf::Color(255, 0, 0, 150));
+    pawn.setOutlineThickness(4.f);
 
     buildSphereMap(ZMAP_PATH, zMap, normalMap, holesList);
 
-//    cout << "Holes' list :" << endl;
-//    for (Vector4i hole : holesList)
-//        cout << hole(0) << "; " << hole(1) << "; " << hole(2) << "; " << hole(3) << endl << endl;
+    cout << "Holes' list :" << endl;
+    for (Vector4i hole : holesList)
+        cout << hole(0) << "; " << hole(1) << "; " << hole(2) << "; " << hole(3) << endl << endl;
 
     saveZMap(zMap, "zMap_grey.png");
 
-//    Ball ball(583.,484.);
-    Ball ball(960, 580, Eigen::Vector3f(20., 0., 0.));
-//    Ball ball(150, 153, Eigen::Vector3f(10., 0., 0.));
+
+//    Ball ball(2*960, 2*580, Eigen::Vector3f(0., 2*10., 0.));
+    Ball ball(2*1400, 2*693, Eigen::Vector3f(2*20., 0., 0.));
     ball.z = zMap(ball.x, ball.y);
     ball.radius = 10. + ball.z / 20.;
 
