@@ -1,6 +1,5 @@
 
 #define _USE_MATH_DEFINES
-#define ZMAP_PATH "z_maps/z_map_hole_4K.png"
 
 #ifndef M_PI
  #define M_PI 3.14159
@@ -21,6 +20,9 @@ bool is4K = true;
 bool gridOption = true;
 bool textureOption = true;
 bool shadeOption = true;
+
+string mapPath;
+string zMapPath;
 
 void loadMap(Image &map)
 {
@@ -45,16 +47,22 @@ void loadMap(Image &map)
 
 }
 
-void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> &normalMap, list<Eigen::Vector4i> &holesList)
+void buildSphereMap(MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynamic> &normalMap, list<Eigen::Vector4i> &holesList)
 {
     Image zImage;
+
+    zMapPath = "z_maps/z_map_hole";
+    if (is4K) zMapPath += "_4K";
+    zMapPath += ".png";
+
     if (!zImage.loadFromFile(zMapPath))
     {
         cout << "Couldn't open the zmap file" << endl;
     }
     else
     {
-       float zMax = 100.;
+        float zMax = 100.;
+        if (is4K) zMax *= 4.;
         cout << "Started loading zMap" << endl;
 
         Vector2u size = zImage.getSize();
@@ -135,7 +143,8 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
         }
     }
 
-    int margin = 50;
+    int margin = 25;
+    if (is4K) margin *= 2;
     for (int i = margin; i < normalMap.rows() - margin; i++)
     {
         for (int j = margin; j < normalMap.cols() - margin; j++)
@@ -148,13 +157,15 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
             float jMinus = sphereMap(i, j-margin);
             float zNormal = sphereMap(i, j);
 
-            if (abs(iPlus - zNormal) > 50.)
+            float wallLimit = 50.;
+            if (is4K) wallLimit *= 4;
+            if (abs(iPlus - zNormal) > wallLimit)
                 iPlus = zNormal;
-            if (abs(iMinus - zNormal) > 50.)
+            if (abs(iMinus - zNormal) > wallLimit)
                 iMinus = zNormal;
-            if (abs(jPlus - zNormal) > 50.)
+            if (abs(jPlus - zNormal) > wallLimit)
                 jPlus = zNormal;
-            if (abs(jMinus - zNormal) > 50.)
+            if (abs(jMinus - zNormal) > wallLimit)
                 jMinus = zNormal;
 
             n = Eigen::Vector3f(2*margin, 0., iPlus - iMinus)
@@ -169,6 +180,7 @@ void buildSphereMap(const string zMapPath, MatrixXf &sphereMap, Matrix<Eigen::Ve
 void makeBallFall(Ball &ball, MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, list<Eigen::Vector4i> holesList, const Time elapsedTime)
 {
     Eigen::Vector3f gravitation(0., 0., -1.);
+    if (is4K) gravitation *= 4.;
 
     Eigen::Vector3f beforePos(ball.x , ball.y, ball.z);
     Eigen::Vector3f v = ball.v;
@@ -199,7 +211,7 @@ void makeBallFall(Ball &ball, MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynam
             if (pos(0) < 0.) pos(0) += zMap.rows();
             pos(1) = max(min(zMap.cols()-1.f, pos(1)), 0.f);
 
-            if (zMap((int) pos(0), (int) pos(1)) - pos(2) > 35.)    /* There's a wall */
+            if (zMap((int) pos(0), (int) pos(1)) - pos(2) > ball.realRadius)    /* There's a wall */
             {
                 // If we want the ball to bounce we need to have some data about the "orientation" of the wall, for now we'll just stop the speed
                 v = Eigen::Vector3f(0., 0., 0.);
@@ -315,18 +327,18 @@ void saveZMap(MatrixXf zMap, const string fileName)
     {
         for (int j = 0; j < zMap.cols(); j++)
         {
-            float z = (200. + zMap(i, j)) / 300. * 255.;
+            float z;
+            if (is4K) z = (200. + zMap(i, j) / 4.) / 300. * 255.;
+            else z = (200. + zMap(i, j)) / 300. * 255.;
             img.setPixel(i, j, Color(z, z, z));
         }
     }
 
-    if (!img.saveToFile(fileName))
-    {
-        cout << "Couldn't save the zMap file" << endl;
-    }
+    if (!img.saveToFile(fileName)) cout << "Couldn't save the zMap file" << endl;
+    else cout << "Saved the zMap file" << endl;
 }
 
-void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Clock &clock, Image &chromaMap, Image referenceMap, Matrix3f &rotation)
+void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Clock &clock, Image &chromaMap, Image &referenceMap, Matrix3f &rotation)
 {
     switch (event.type)
         {
@@ -383,8 +395,8 @@ void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Cl
                     shadeOption = !shadeOption;
                     loadMap(referenceMap);
                     rotateWorld(chromaMap, referenceMap, rotation);
+                    break;
                 }
-
             break;
 
         case Event::JoystickMoved:
@@ -430,12 +442,18 @@ int main( int argc, char * argv[] )
     sprite.setTexture(texture);
 
     /* let's create the graphic image of the ball*/
-    CircleShape pawn(2*30.f);
+    CircleShape pawn(30.f);
     pawn.setFillColor(sf::Color::Black);
-    pawn.setOutlineColor(sf::Color(255, 0, 0, 150));
-    pawn.setOutlineThickness(4.f);
+    pawn.setOutlineColor(sf::Color(255, 255, 255, 150));
+    pawn.setOutlineThickness(2.f);
 
-    buildSphereMap(ZMAP_PATH, zMap, normalMap, holesList);
+    if (is4K)
+    {
+        pawn.setRadius(2*pawn.getRadius());
+        pawn.setOutlineThickness(2*pawn.getOutlineThickness());
+    }
+
+    buildSphereMap(zMap, normalMap, holesList);
 
     cout << "Holes' list :" << endl;
     for (Vector4i hole : holesList)
@@ -445,9 +463,10 @@ int main( int argc, char * argv[] )
 
 
 //    Ball ball(2*960, 2*580, Eigen::Vector3f(0., 2*10., 0.));
-    Ball ball(2*1400, 2*693, Eigen::Vector3f(2*20., 0., 0.));
+    Ball ball(1400, 693, Eigen::Vector3f(20., 0., 0.));
     ball.z = zMap(ball.x, ball.y);
     ball.radius = 10. + ball.z / 20.;
+    ball.to4K(is4K);
 
     Clock clock;
     Time elapsedTime;

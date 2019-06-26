@@ -9,6 +9,7 @@ class Ball
     public :
         float x, y, z;
         float radius = 10.f;
+        float realRadius = 17.5;
         Eigen::Vector3f v; // Speed of the ball
         Ball()
         {
@@ -49,4 +50,16 @@ class Ball
             this->v = v;
         }
         ~Ball(){}
+
+        void to4K(bool is4K)
+        {
+            if (is4K)
+            {
+                x *= 2.;
+                y *= 2.;
+                radius *= 2.;
+                realRadius *= 2.;
+                v *= 2.;
+            }
+        }
 };
