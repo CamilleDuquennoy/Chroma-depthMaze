@@ -11,12 +11,14 @@ class Ball
         float radius = 10.f;
         float realRadius = 17.5;
         Eigen::Vector3f v; // Speed of the ball
+        Eigen::Vector3f a; // Acceleration
         Ball()
         {
             x = 0.;
             y = 0.;
             z = 0.;
             v = Eigen::Vector3f(0., 0., 0.);
+            a = Eigen::Vector3f(0., 0., 0.);
         };
 
         Ball(float x, float y)
@@ -25,6 +27,7 @@ class Ball
             this->y = y;
             z = 0.;
             v = Eigen::Vector3f(0., 0., 0.);
+            a = Eigen::Vector3f(0., 0., 0.);
         }
         Ball(float x, float y, float z)
         {
@@ -32,6 +35,7 @@ class Ball
             this->y = y;
             this->z = z;
             v = Eigen::Vector3f(0., 0., 0.);
+            a = Eigen::Vector3f(0., 0., 0.);
         }
 
         Ball (float x, float y, float z, Eigen::Vector3f v)
@@ -40,6 +44,7 @@ class Ball
             this->y = y;
             this->z = z;
             this->v = v;
+            a = Eigen::Vector3f(0., 0., 0.);
         }
 
         Ball (float x, float y, Eigen::Vector3f v)
@@ -48,6 +53,7 @@ class Ball
             this->y = y;
             z = 0.;
             this->v = v;
+            a = Eigen::Vector3f(0., 0., 0.);
         }
         ~Ball(){}
 
@@ -57,9 +63,9 @@ class Ball
             {
                 x *= 2.;
                 y *= 2.;
-                radius *= 2.;
                 realRadius *= 2.;
                 v *= 2.;
+                a *= 2.;
             }
         }
 };

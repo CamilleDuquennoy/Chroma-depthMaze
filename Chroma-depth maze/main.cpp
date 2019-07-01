@@ -16,13 +16,14 @@ using namespace Eigen;
 using namespace std;
 using namespace sf;
 
-bool is4K = true;
+bool is4K = false;
 bool gridOption = true;
 bool textureOption = true;
 bool shadeOption = true;
 
 string mapPath;
 string zMapPath;
+float zMax;
 
 void loadMap(Image &map)
 {
@@ -61,7 +62,7 @@ void buildSphereMap(MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynami
     }
     else
     {
-        float zMax = 100.;
+        zMax = 100.;
         if (is4K) zMax *= 4.;
         cout << "Started loading zMap" << endl;
 
@@ -180,13 +181,13 @@ void buildSphereMap(MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynami
 void makeBallFall(Ball &ball, MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap, list<Eigen::Vector4i> holesList, const Time elapsedTime)
 {
     Eigen::Vector3f gravitation(0., 0., -1.);
-    if (is4K) gravitation *= 4.;
+    if (is4K) gravitation *= 2.;
 
     Eigen::Vector3f beforePos(ball.x , ball.y, ball.z);
     Eigen::Vector3f v = ball.v;
 
     Eigen::Vector3f normal = normalMap((int) ball.x, (int) ball.y);
-    v += 10. * elapsedTime.asSeconds() * (gravitation + normal);
+    v += 10. * elapsedTime.asSeconds() * (gravitation + normal + ball.a);
 
     float distance = (elapsedTime.asSeconds() * v).norm();
     Eigen::Vector3f direction = v.normalized();
@@ -227,14 +228,16 @@ void makeBallFall(Ball &ball, MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynam
     }
 
     /* Is the ball deep? */
-    if (zMap((int) pos(0), (int) pos(1)) < -195.)
+    if (zMap((int) pos(0), (int) pos(1)) < - 2 * zMax * 0.95)
     {
         for(Eigen::Vector4i hole : holesList)
         {
-            if (pow(pos(0) - hole(0), 2) + pow(pos(1) - hole(1), 2) <= 100.)   /* The ball is close to the hole */
+            float distMin = 100.;
+            if (is4K) distMin *= 4.;
+            if (pow(pos(0) - hole(0), 2) + pow(pos(1) - hole(1), 2) <= distMin)   /* The ball is close to the hole */
             {
                 v = Eigen::Vector3f(-v(0), v(1), -v(2));
-                pos = Eigen::Vector3f(hole(2), hole(3), zMap(hole(2), hole(3))) + 20.*v.normalized();
+                pos = Eigen::Vector3f(hole(2), hole(3), zMap(hole(2), hole(3))) + (zMax * 0.1 + 10.) * v.normalized();
             }
         }
     }
@@ -243,7 +246,8 @@ void makeBallFall(Ball &ball, MatrixXf zMap, const Matrix<Eigen::Vector3f, Dynam
     ball.x = pos(0);
     ball.y = pos(1);
     ball.z = zMap((int) ball.x, (int) ball.y);
-    ball.radius = 10. + ball.z / 20.;
+    if (is4K) ball.radius = 20. + ball.z / 20;
+    else ball.radius = 10. + ball.z / 20.;
 }
 
 void rotateWorld(Image &chromaMap, Image referenceMap, Matrix3f rotation)
@@ -338,6 +342,42 @@ void saveZMap(MatrixXf zMap, const string fileName)
     else cout << "Saved the zMap file" << endl;
 }
 
+void checkControllerState(Window &window, Ball &ball, CircleShape &pawn, Image &chromaMap, Image &referenceMap, Matrix3f &rotation)
+{
+    Joystick::update();
+
+    if (Joystick::hasAxis(0, Joystick::X))
+    {
+        float xBall = Joystick::getAxisPosition(0, Joystick::X);
+        float yBall = Joystick::getAxisPosition(0, Joystick::Y);
+        float xWorld = Joystick::getAxisPosition(0, Joystick::Z);
+        float yWorld = Joystick::getAxisPosition(0, Joystick::R);
+
+        float scale = 50.;
+        if (is4K) scale /= 2.;
+        ball.a = Eigen::Vector3f(xBall / scale, yBall / scale, 0.);
+//
+//        float dTheta = xWorld / 100. * 2. * M_PI;   //TODO: check if it goes in the right direction
+//        float dPhi = yWorld / 100. * M_PI;
+//
+//        Matrix3f thetaRot;
+//        thetaRot <<     cos(dTheta),    -sin(dTheta), 0.,
+//                        sin(dTheta),     cos(dTheta), 0.,
+//                        0.,              0.,          1.;
+//
+//        Matrix3f phiRot;
+//        phiRot <<       cos(dPhi),      0.,     sin(dPhi),
+//                        0.,             1.,     0.,
+//                        -sin(dPhi),     0.,     cos(dPhi);
+//
+//        rotation = thetaRot * phiRot * rotation;
+//
+//        cout << rotation << endl;
+//        rotateWorld(chromaMap, referenceMap, rotation);
+//        ball.a += Eigen::Vector3f(-xWorld / scale, -yWorld / scale, 0.);
+    }
+}
+
 void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Clock &clock, Image &chromaMap, Image &referenceMap, Matrix3f &rotation)
 {
     switch (event.type)
@@ -396,6 +436,9 @@ void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Cl
                     loadMap(referenceMap);
                     rotateWorld(chromaMap, referenceMap, rotation);
                     break;
+
+                case 4:
+                    cout << "ball : " << ball.x << "; " << ball.y << " at " << ball.z << endl << "pawn : " << pawn.getPosition().x << "; " << pawn.getPosition().y << endl;
                 }
             break;
 
@@ -407,9 +450,14 @@ void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Cl
         case Event::KeyPressed:
             cout << "Key " << event.key.code << " pressed" << endl;
 
-            if (event.key.code == Keyboard::Enter) centerMap(pawn, chromaMap, referenceMap, rotation);
-            if (event.key.code == Keyboard::Escape) window.create(VideoMode(window.getSize().x, window.getSize().y), "Chroma-depth maze", Style::Default);
-            if (event.key.code == Keyboard::F) window.create(VideoMode(window.getSize().x, window.getSize().y), "Chroma-depth maze", Style::Fullscreen);
+            if (event.key.code == Keyboard::Enter)
+                centerMap(pawn, chromaMap, referenceMap, rotation);
+
+            if (event.key.code == Keyboard::Escape)
+                window.create(VideoMode(window.getSize().x, window.getSize().y), "Chroma-depth maze", Style::Default);
+
+            if (event.key.code == Keyboard::F)
+                window.create(VideoMode(window.getSize().x, window.getSize().y), "Chroma-depth maze", Style::Fullscreen);
             break;
 
         case Event::MouseButtonPressed:
@@ -427,8 +475,8 @@ int main( int argc, char * argv[] )
     loadMap(*chromaMap);
     Image* referenceMap = new Image();
     loadMap(*referenceMap);
-    RenderWindow window(VideoMode(chromaMap->getSize().x, chromaMap->getSize().y), "Chroma-depth maze", Style::Fullscreen); //Need to config size for Geo-cosmos
-    window.setJoystickThreshold(90);    //Need to adapt to the game controller
+    RenderWindow window(VideoMode(chromaMap->getSize().x, chromaMap->getSize().y), "Chroma-depth maze", Style::Fullscreen);
+    window.setJoystickThreshold(50);    //Need to adapt to the game controller
 
     MatrixXf zMap;
     Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap;
@@ -462,8 +510,8 @@ int main( int argc, char * argv[] )
     saveZMap(zMap, "zMap_grey.png");
 
 
-//    Ball ball(2*960, 2*580, Eigen::Vector3f(0., 2*10., 0.));
-    Ball ball(1400, 693, Eigen::Vector3f(20., 0., 0.));
+    Ball ball(960, 180, Eigen::Vector3f(0., 0., 0.));
+//    Ball ball(1400, 693, Eigen::Vector3f(20., 0., 0.));
     ball.z = zMap(ball.x, ball.y);
     ball.radius = 10. + ball.z / 20.;
     ball.to4K(is4K);
@@ -482,6 +530,7 @@ int main( int argc, char * argv[] )
 
         /*Apply the gravitation physics*/
         elapsedTime = clock.restart();
+        checkControllerState(window, ball, pawn, *chromaMap, *referenceMap, rotation);
         makeBallFall(ball, zMap, normalMap, holesList, elapsedTime);
 
         //TODO: add an arrival check, later
