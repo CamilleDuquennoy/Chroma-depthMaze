@@ -21,13 +21,22 @@ bool gridOption = true;
 bool textureOption = true;
 bool shadeOption = true;
 
+int level = 3;
+
 string mapPath;
 string zMapPath;
 float zMax;
 
 void loadMap(Image &map)
 {
-    mapPath = "maps/map";
+    mapPath = "maps/";
+    if (level < 0) mapPath += "Test";
+    else
+    {
+        mapPath += "lv";
+        mapPath += to_string(level);
+    }
+    mapPath += "/map";
 
     if (is4K) mapPath += "_4K";
 
@@ -52,7 +61,16 @@ void buildSphereMap(MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynami
 {
     Image zImage;
 
-    zMapPath = "z_maps/z_map_hole";
+    zMapPath = "z_maps/";
+
+    if (level < 0) zMapPath += "Test";
+    else
+    {
+        zMapPath += "lv";
+        zMapPath += to_string(level);
+    }
+
+    zMapPath += "/z_map_hole";
     if (is4K) zMapPath += "_4K";
     zMapPath += ".png";
 
@@ -353,6 +371,7 @@ void checkControllerState(Window &window, Ball &ball, CircleShape &pawn, Image &
         float xWorld = Joystick::getAxisPosition(0, Joystick::Z);
         float yWorld = Joystick::getAxisPosition(0, Joystick::R);
 
+        //TODO: Need to take into account the rotation of the world
         float scale = 50.;
         if (is4K) scale /= 2.;
         ball.a = Eigen::Vector3f(xBall / scale, yBall / scale, 0.);
@@ -510,7 +529,7 @@ int main( int argc, char * argv[] )
     saveZMap(zMap, "zMap_grey.png");
 
 
-    Ball ball(960, 180, Eigen::Vector3f(0., 0., 0.));
+    Ball ball(660, 480, Eigen::Vector3f(0., 0., 0.));
 //    Ball ball(1400, 693, Eigen::Vector3f(20., 0., 0.));
     ball.z = zMap(ball.x, ball.y);
     ball.radius = 10. + ball.z / 20.;
