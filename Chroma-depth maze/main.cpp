@@ -21,7 +21,7 @@ bool gridOption = true;
 bool textureOption = true;
 bool shadeOption = true;
 
-int level = 3;
+int level = -1;
 
 string mapPath;
 string zMapPath;
@@ -374,26 +374,47 @@ void checkControllerState(Window &window, Ball &ball, CircleShape &pawn, Image &
         //TODO: Need to take into account the rotation of the world
         float scale = 50.;
         if (is4K) scale /= 2.;
+
+//        float theta = xBall / 100. * M_PI - M_PI;
+//        float phi = yBall / 100. * M_PI;
+//
+//        Eigen::Vector3f pawnPos = rotation.transpose() * Eigen::Vector3f(sin(phi)*cos(theta), sin(phi)*sin(theta), cos(phi));
+//
+//        float newPhi = acos(pawnPos(2));
+//        float newTheta = atan2(pawnPos(1), pawnPos(0)) + M_PI;
+//
+//        xBall = newTheta * 100. / (2*M_PI);
+//        yBall = newPhi * 100. / (M_PI);
+
         ball.a = Eigen::Vector3f(xBall / scale, yBall / scale, 0.);
-//
-//        float dTheta = xWorld / 100. * 2. * M_PI;   //TODO: check if it goes in the right direction
-//        float dPhi = yWorld / 100. * M_PI;
-//
-//        Matrix3f thetaRot;
-//        thetaRot <<     cos(dTheta),    -sin(dTheta), 0.,
-//                        sin(dTheta),     cos(dTheta), 0.,
-//                        0.,              0.,          1.;
-//
-//        Matrix3f phiRot;
-//        phiRot <<       cos(dPhi),      0.,     sin(dPhi),
-//                        0.,             1.,     0.,
-//                        -sin(dPhi),     0.,     cos(dPhi);
-//
-//        rotation = thetaRot * phiRot * rotation;
-//
-//        cout << rotation << endl;
-//        rotateWorld(chromaMap, referenceMap, rotation);
-//        ball.a += Eigen::Vector3f(-xWorld / scale, -yWorld / scale, 0.);
+
+        if (xWorld*xWorld + yWorld*yWorld > 100.)
+        {
+            float dTheta = xWorld / 100. * 2. * M_PI;
+
+            float dPhi = yWorld / 100. * M_PI;
+
+            Matrix3f thetaRot;
+            thetaRot <<     cos(dTheta),    -sin(dTheta), 0.,
+                            sin(dTheta),     cos(dTheta), 0.,
+                            0.,              0.,          1.;
+
+            Matrix3f phiRot;
+            phiRot <<       cos(dPhi),      0.,     sin(dPhi),
+                            0.,             1.,     0.,
+                            -sin(dPhi),     0.,     cos(dPhi);
+
+            float ballOffSet = -(ball.x / referenceMap.getSize().x - 0.5) * 2 * M_PI;
+            Matrix3f phiRotBallAdapt;
+            phiRotBallAdapt <<  cos(ballOffSet),    -sin(ballOffSet), 0.,
+                                sin(ballOffSet),     cos(ballOffSet), 0.,
+                                0.,                  0.,              1.;
+            rotation = thetaRot * phiRotBallAdapt * phiRot * phiRotBallAdapt.transpose() * rotation;
+
+            cout << rotation << endl;
+            rotateWorld(chromaMap, referenceMap, rotation);
+            ball.a += Eigen::Vector3f(-xWorld / scale, -yWorld / scale, 0.);
+        }
     }
 }
 
@@ -529,8 +550,8 @@ int main( int argc, char * argv[] )
     saveZMap(zMap, "zMap_grey.png");
 
 
-    Ball ball(660, 480, Eigen::Vector3f(0., 0., 0.));
-//    Ball ball(1400, 693, Eigen::Vector3f(20., 0., 0.));
+//    Ball ball(660, 480, Eigen::Vector3f(0., 0., 0.));
+    Ball ball(1400, 693, Eigen::Vector3f(20., 0., 0.));
     ball.z = zMap(ball.x, ball.y);
     ball.radius = 10. + ball.z / 20.;
     ball.to4K(is4K);
