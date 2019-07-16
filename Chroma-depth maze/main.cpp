@@ -375,24 +375,13 @@ void checkControllerState(Window &window, Ball &ball, CircleShape &pawn, Image &
         float scale = 50.;
         if (is4K) scale /= 2.;
 
-//        float theta = xBall / 100. * M_PI - M_PI;
-//        float phi = yBall / 100. * M_PI;
-//
-//        Eigen::Vector3f pawnPos = rotation.transpose() * Eigen::Vector3f(sin(phi)*cos(theta), sin(phi)*sin(theta), cos(phi));
-//
-//        float newPhi = acos(pawnPos(2));
-//        float newTheta = atan2(pawnPos(1), pawnPos(0)) + M_PI;
-//
-//        xBall = newTheta * 100. / (2*M_PI);
-//        yBall = newPhi * 100. / (M_PI);
-
         ball.a = Eigen::Vector3f(xBall / scale, yBall / scale, 0.);
 
         if (xWorld*xWorld + yWorld*yWorld > 100.)
         {
             float dTheta = xWorld / 100. * 2. * M_PI;
 
-            float dPhi = yWorld / 100. * M_PI;
+            float dPhi = -yWorld / 100. * M_PI;
 
             Matrix3f thetaRot;
             thetaRot <<     cos(dTheta),    -sin(dTheta), 0.,
@@ -404,12 +393,19 @@ void checkControllerState(Window &window, Ball &ball, CircleShape &pawn, Image &
                             0.,             1.,     0.,
                             -sin(dPhi),     0.,     cos(dPhi);
 
-            float ballOffSet = -(ball.x / referenceMap.getSize().x - 0.5) * 2 * M_PI;
+
+//            float thetaBall = ball.x / referenceMap.getSize().x * M_PI - M_PI;
+//            float phiBall = ball.y / referenceMap.getSize().y * M_PI;
+//
+//            Eigen::Vector3f pawnPos = rotation.transpose() * Eigen::Vector3f(sin(phiBall)*cos(thetaBall), sin(phiBall)*sin(thetaBall), cos(phiBall));
+
+            float ballOffSet = -ball.x / referenceMap.getSize().x * M_PI - M_PI;
+//            acos(pawnPos(2));
             Matrix3f phiRotBallAdapt;
             phiRotBallAdapt <<  cos(ballOffSet),    -sin(ballOffSet), 0.,
                                 sin(ballOffSet),     cos(ballOffSet), 0.,
                                 0.,                  0.,              1.;
-            rotation = thetaRot * phiRotBallAdapt * phiRot * phiRotBallAdapt.transpose() * rotation;
+            rotation = phiRotBallAdapt * thetaRot * phiRot * phiRotBallAdapt.transpose() * rotation;
 
             cout << rotation << endl;
             rotateWorld(chromaMap, referenceMap, rotation);
@@ -527,6 +523,7 @@ int main( int argc, char * argv[] )
     Sprite sprite;
     Texture texture;
     texture.loadFromImage(*chromaMap);
+    texture.setSmooth(true);
     sprite.setTexture(texture);
 
     /* let's create the graphic image of the ball*/
@@ -571,7 +568,7 @@ int main( int argc, char * argv[] )
         /*Apply the gravitation physics*/
         elapsedTime = clock.restart();
         checkControllerState(window, ball, pawn, *chromaMap, *referenceMap, rotation);
-        makeBallFall(ball, zMap, normalMap, holesList, elapsedTime);
+//        makeBallFall(ball, zMap, normalMap, holesList, elapsedTime);
 
         //TODO: add an arrival check, later
         texture.update(*chromaMap);
