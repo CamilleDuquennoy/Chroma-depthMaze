@@ -1,5 +1,4 @@
 
-#include <SFML/Graphics.hpp>
 #include "math.h"
 #include "../eigen-eigen-323c052e1731/Eigen/Dense"
 
