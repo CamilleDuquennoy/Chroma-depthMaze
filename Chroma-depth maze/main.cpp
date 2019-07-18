@@ -10,7 +10,8 @@
 #include <math.h>
 #include <string>
 #include <thread>
-#include "header.h"
+#include "ball.h"
+#include "level.h
 
 using namespace Eigen;
 using namespace std;
@@ -21,7 +22,7 @@ bool gridOption = true;
 bool textureOption = true;
 bool shadeOption = true;
 
-int level = -1;
+int levelNumber = -1;
 
 string mapPath;
 string zMapPath;
@@ -67,7 +68,7 @@ void buildSphereMap(MatrixXf &sphereMap, Matrix<Eigen::Vector3f, Dynamic, Dynami
     else
     {
         zMapPath += "lv";
-        zMapPath += to_string(level);
+        zMapPath += to_string(levelNumber);
     }
 
     zMapPath += "/z_map_hole";
@@ -316,7 +317,7 @@ void centerMap(CircleShape &pawn, Image &chromaMap, const Image referenceMap, Ma
     sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
 
     /* We use the opposite rotation */
-    float dX = (float) pawn.getPosition().x + pawn.getRadius()- size.x / 2.;
+    float dX = (float) pawn.getPosition().x + pawn.getRadius() - size.x / 2.;
     float dY = (float) pawn.getPosition().y + pawn.getRadius() - size.y / 2.;
     float dTheta = dX / (float) size.x * 2. * M_PI;
     float dPhi = dY / (float) size.y * M_PI;
@@ -399,7 +400,7 @@ void checkControllerState(Window &window, Ball &ball, CircleShape &pawn, Image &
 //
 //            Eigen::Vector3f pawnPos = rotation.transpose() * Eigen::Vector3f(sin(phiBall)*cos(thetaBall), sin(phiBall)*sin(thetaBall), cos(phiBall));
 
-            float ballOffSet = -ball.x / referenceMap.getSize().x * M_PI - M_PI;
+            float ballOffSet = -pawn.getPosition().x / referenceMap.getSize().x * M_PI - M_PI;
 //            acos(pawnPos(2));
             Matrix3f phiRotBallAdapt;
             phiRotBallAdapt <<  cos(ballOffSet),    -sin(ballOffSet), 0.,
@@ -505,24 +506,25 @@ void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Cl
         }
 }
 
+bool isArrived(Ball ball, Eigen::Vector2f goal)
+{
+    float distanceToGoal = pow(ball.x - goal(0), 2) + pow(ball.y - goal(1), 2);
+    float distMin = 100.;
+    if (is4K) distMin *= 4;
+    return (distanceToGoal < distMin);
+}
+
 int main( int argc, char * argv[] )
 {
-    Image* chromaMap = new Image();
-    loadMap(*chromaMap);
-    Image* referenceMap = new Image();
-    loadMap(*referenceMap);
+    Level level(levelNumber);
     RenderWindow window(VideoMode(chromaMap->getSize().x, chromaMap->getSize().y), "Chroma-depth maze", Style::Fullscreen);
     window.setJoystickThreshold(50);    //Need to adapt to the game controller
 
-    MatrixXf zMap;
-    Matrix<Eigen::Vector3f, Dynamic, Dynamic> normalMap;
-    list<Eigen::Vector4i> holesList;
-    Matrix3f rotation = Matrix3f::Identity();
     //TODO: create a good map with photoshop (finished for the dev part only)
 
     Sprite sprite;
     Texture texture;
-    texture.loadFromImage(*chromaMap);
+    texture.loadFromImage(*level.chromaMap);
     texture.setSmooth(true);
     sprite.setTexture(texture);
 
@@ -538,18 +540,16 @@ int main( int argc, char * argv[] )
         pawn.setOutlineThickness(2*pawn.getOutlineThickness());
     }
 
-    buildSphereMap(zMap, normalMap, holesList);
-
     cout << "Holes' list :" << endl;
-    for (Vector4i hole : holesList)
+    for (Vector4i hole : level.holesList)
         cout << hole(0) << "; " << hole(1) << "; " << hole(2) << "; " << hole(3) << endl << endl;
 
-    saveZMap(zMap, "zMap_grey.png");
+    saveZMap(level.zMap, "zMap_grey.png");
 
 
 //    Ball ball(660, 480, Eigen::Vector3f(0., 0., 0.));
     Ball ball(1400, 693, Eigen::Vector3f(20., 0., 0.));
-    ball.z = zMap(ball.x, ball.y);
+    ball.z = level.zMap(ball.x, ball.y);
     ball.radius = 10. + ball.z / 20.;
     ball.to4K(is4K);
 
@@ -575,6 +575,12 @@ int main( int argc, char * argv[] )
 
         pawn.setRadius(ball.radius);
         setPawnPosition(pawn, ball, *chromaMap, rotation);
+        if (isArrived(ball, referenceMap))
+        {
+            //For now it's just some basic message, need to create a pop-up or something
+            cout << "Well done, you finished the " << level << " level!" << endl;
+            return 0;
+        }
 
         window.clear();
         window.draw(sprite);
