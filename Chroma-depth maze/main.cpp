@@ -252,6 +252,8 @@ int main( int argc, char * argv[] )
         {
             //For now it's just some basic message, need to create a pop-up or something
             cout << "Well done, you finished the " << levelNumber << " level!" << endl;
+            levelNumber++;
+            level.nextLevel(levelNumber);
             return 0;
         }
 

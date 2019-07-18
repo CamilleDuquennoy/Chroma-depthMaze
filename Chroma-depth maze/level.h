@@ -38,10 +38,10 @@ public:
     list<Eigen::Vector4i> holesList;
     Eigen::Vector2f goal;
 
-    Level(int levelNum, bool is4k)
+    Level(int levelNum, bool is4K)
     {
-        levelNumber = levelNum;
-        is4K = is4k;
+        this->levelNumber = levelNum;
+        this->is4K = is4K;
         loadMap(chromaMap);
         loadMap(referenceMap);
         rotation = Matrix3f::Identity();
@@ -206,6 +206,16 @@ public:
         rotateWorld();
     }
 
+    void nextLevel(int levelNumber)
+    {
+        this->levelNumber = levelNumber;
+        loadMap(chromaMap);
+        loadMap(referenceMap);
+        rotation = Matrix3f::Identity();
+
+        buildSphereMap();
+    }
+
 private:
     string mapPath;
     string zMapPath;
@@ -279,6 +289,9 @@ private:
                     float R = (float) color.r / 255.;
                     float G = (float) color.g / 255.;
                     float B = (float) color.b / 255.;
+
+                    if (color == Color::White)
+                        goal = Eigen::Vector2f(i, j);
 
                     /* Sets z depending on the color*/
                     if (R > 0.99)
