@@ -189,15 +189,15 @@ bool isArrived(Ball ball, Eigen::Vector2f goal)
 
 int main( int argc, char * argv[] )
 {
-    Level level(levelNumber, is4K);
-    RenderWindow window(VideoMode(level.chromaMap.getSize().x, level.chromaMap.getSize().y), "Chroma-depth maze", Style::Fullscreen);
+    Level* level = new Level(levelNumber, is4K);
+    RenderWindow window(VideoMode(level->chromaMap.getSize().x, level->chromaMap.getSize().y), "Chroma-depth maze", Style::Fullscreen);
     window.setJoystickThreshold(50);    //Need to adapt to the game controller
 
     //TODO: create a good map with photoshop (finished for the dev part only)
 
     Sprite sprite;
     Texture texture;
-    texture.loadFromImage(level.chromaMap);
+    texture.loadFromImage(level->chromaMap);
     texture.setSmooth(true);
     sprite.setTexture(texture);
 
@@ -214,15 +214,15 @@ int main( int argc, char * argv[] )
     }
 
     cout << "Holes' list :" << endl;
-    for (Vector4i hole : level.holesList)
+    for (Vector4i hole : level->holesList)
         cout << hole(0) << "; " << hole(1) << "; " << hole(2) << "; " << hole(3) << endl << endl;
 
-    level.saveZMap("zMap_grey.png");
+    level->saveZMap("zMap_grey.png");
 
 
 //    Ball ball(660, 480, Eigen::Vector3f(0., 0., 0.));
     Ball ball(1400, 693, Eigen::Vector3f(20., 0., 0.));
-    ball.z = level.zMap(ball.x, ball.y);
+    ball.z = level->zMap(ball.x, ball.y);
     ball.radius = 10. + ball.z / 20.;
     ball.to4K(is4K);
 
@@ -234,26 +234,26 @@ int main( int argc, char * argv[] )
         Event event;
         while(window.pollEvent(event))
         {
-            manageEvents(event, window, ball, pawn, clock, level);
+            manageEvents(event, window, ball, pawn, clock, *level);
             if (!window.isOpen()) return 0;
         }
 
         /*Apply the gravitation physics*/
         elapsedTime = clock.restart();
-        checkControllerState(window, ball, pawn, level);
-        level.makeBallFall(ball, elapsedTime);
+        checkControllerState(window, ball, pawn, *level);
+        level->makeBallFall(ball, elapsedTime);
 
         //TODO: add an arrival check, later
-        texture.update(level.chromaMap);
+        texture.update(level->chromaMap);
 
         pawn.setRadius(ball.radius);
-        setPawnPosition(pawn, ball, level.chromaMap, level.rotation);
-        if (isArrived(ball, level.goal))
+        setPawnPosition(pawn, ball, level->chromaMap, level->rotation);
+        if (isArrived(ball, level->goal))
         {
             //For now it's just some basic message, need to create a pop-up or something
             cout << "Well done, you finished the " << levelNumber << " level!" << endl;
             levelNumber++;
-            level.nextLevel(levelNumber);
+            level = new Level(levelNumber, is4K);
             return 0;
         }
 

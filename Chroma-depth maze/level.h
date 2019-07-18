@@ -206,16 +206,6 @@ public:
         rotateWorld();
     }
 
-    void nextLevel(int levelNumber)
-    {
-        this->levelNumber = levelNumber;
-        loadMap(chromaMap);
-        loadMap(referenceMap);
-        rotation = Matrix3f::Identity();
-
-        buildSphereMap();
-    }
-
 private:
     string mapPath;
     string zMapPath;
