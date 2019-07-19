@@ -47,7 +47,8 @@
 			<Add option="-std=c++11" />
 			<Add option="-fexceptions" />
 		</Compiler>
-		<Unit filename="header.h" />
+		<Unit filename="ball.h" />
+		<Unit filename="level.h" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />

@@ -196,8 +196,13 @@ void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &
 
     int textSize = 30;
     if (is4K) textSize *= 2;
-    Text text("Well done, you've finished the level! Click on any button to go to the next one", font, textSize);
+    Text text("   Well done, you've finished the level! \nClick on any button to go to the next one", font, textSize);
     text.setColor(Color::White);
+    //center text
+    sf::FloatRect textRect = text.getLocalBounds();
+    text.setOrigin(textRect.left + textRect.width/2.0f,
+                   textRect.top  + textRect.height/2.0f);
+    text.setPosition(window.getSize().x / 2., window.getSize().y / 2.);
 
     while(window.isOpen())
     {
