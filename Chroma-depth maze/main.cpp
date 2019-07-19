@@ -16,8 +16,10 @@ using namespace Eigen;
 using namespace std;
 using namespace sf;
 
-int levelNumber = -1;
+int levelNumber = 0;
 bool is4K = false;
+
+Font font;
 
 void setPawnPosition(CircleShape &pawn, Ball ball, Image chromaMap, Matrix3f rotation)
 {
@@ -187,11 +189,43 @@ bool isArrived(Ball ball, Eigen::Vector2f goal)
     return (distanceToGoal < distMin);
 }
 
+void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &ball)
+{
+    //For now it's just some basic message, need to create a pop-up or something
+    cout << "Well done, you finished the " << levelNumber << " level!" << endl;
+
+    int textSize = 30;
+    if (is4K) textSize *= 2;
+    Text text("Well done, you've finished the level! Click on any button to go to the next one", font, textSize);
+    text.setColor(Color::White);
+
+    while(window.isOpen())
+    {
+        Event event;
+        while (window.pollEvent(event))
+        {
+            if (event.type == Event::JoystickButtonPressed) window.close();
+        }
+        window.clear();
+        window.draw(text);
+        window.display();
+    }
+
+    levelNumber++;
+    level = new Level(levelNumber, is4K);
+    ball.x = level->chromaMap.getSize().x / 2;  //Will need to add the margin
+    ball.y = level->chromaMap.getSize().y / 2;
+
+    window.create(VideoMode(level->chromaMap.getSize().x, level->chromaMap.getSize().y), "Chroma-depth maze", Style::Fullscreen);
+}
+
 int main( int argc, char * argv[] )
 {
     Level* level = new Level(levelNumber, is4K);
     RenderWindow window(VideoMode(level->chromaMap.getSize().x, level->chromaMap.getSize().y), "Chroma-depth maze", Style::Fullscreen);
     window.setJoystickThreshold(50);    //Need to adapt to the game controller
+
+    font.loadFromFile("ARIALN.TTF");
 
     //TODO: create a good map with photoshop (finished for the dev part only)
 
@@ -221,7 +255,7 @@ int main( int argc, char * argv[] )
 
 
 //    Ball ball(660, 480, Eigen::Vector3f(0., 0., 0.));
-    Ball ball(1400, 693, Eigen::Vector3f(20., 0., 0.));
+    Ball ball(1300, 693, Eigen::Vector3f(20., 0., 0.));
     ball.z = level->zMap(ball.x, ball.y);
     ball.radius = 10. + ball.z / 20.;
     ball.to4K(is4K);
@@ -248,14 +282,8 @@ int main( int argc, char * argv[] )
 
         pawn.setRadius(ball.radius);
         setPawnPosition(pawn, ball, level->chromaMap, level->rotation);
-        if (isArrived(ball, level->goal))
-        {
-            //For now it's just some basic message, need to create a pop-up or something
-            cout << "Well done, you finished the " << levelNumber << " level!" << endl;
-            levelNumber++;
-            level = new Level(levelNumber, is4K);
-            return 0;
-        }
+
+        if (isArrived(ball, level->goal)) levelComplete(window, level, levelNumber, ball);
 
         window.clear();
         window.draw(sprite);

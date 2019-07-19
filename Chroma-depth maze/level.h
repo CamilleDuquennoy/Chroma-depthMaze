@@ -214,7 +214,7 @@ private:
     void loadMap(Image &map)
     {
         mapPath = "maps/";
-        if (levelNumber < 0) mapPath += "Test";
+        if (levelNumber == 0) mapPath += "Test";
         else
         {
             mapPath += "lv";
@@ -246,7 +246,7 @@ private:
 
         zMapPath = "z_maps/";
 
-        if (levelNumber < 0) zMapPath += "Test";
+        if (levelNumber == 0) zMapPath += "Test";
         else
         {
             zMapPath += "lv";
