@@ -25,16 +25,11 @@ void setPawnPosition(CircleShape &pawn, Ball ball, Image chromaMap, Matrix3f rot
 {
     sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
 
-    float theta = (ball.x - ball.radius) / size.x * 2. * M_PI - M_PI;
-    float phi = (ball.y - ball.radius) / size.y * M_PI;
+    float newX, newY;
+    rotateCoord(rotation.inverse(), size, ball.x, ball.y, newX, newY);
 
-    Eigen::Vector3f pawnPos = rotation.transpose() * Eigen::Vector3f(sin(phi)*cos(theta), sin(phi)*sin(theta), cos(phi));
-
-    float newPhi = acos(pawnPos(2));
-    float newTheta = atan2(pawnPos(1), pawnPos(0)) + M_PI;
-
-    float newX = min((double) size.x - 1, (float) newTheta * size.x / (2*M_PI));
-    float newY = min((double) size.y - 1, (float) newPhi * size.y / (M_PI));
+    newX = max(0.f, newX - ball.radius);
+    newY = max(0.f, newY - ball.radius);
 
     pawn.setPosition(newX, newY);
 }
@@ -43,50 +38,42 @@ void checkControllerState(Window &window, Ball &ball, CircleShape &pawn, Level &
 {
     Joystick::update();
 
-    if (Joystick::hasAxis(0, Joystick::X))
+    if (Joystick::hasAxis(0, Joystick::X) || true)
     {
-        float xBall = Joystick::getAxisPosition(0, Joystick::X);
-        float yBall = Joystick::getAxisPosition(0, Joystick::Y);
-        float xWorld = Joystick::getAxisPosition(0, Joystick::Z);
-        float yWorld = Joystick::getAxisPosition(0, Joystick::R);
+        float xBall = Joystick::getAxisPosition(0, Joystick::X) / 100.;
+        float yBall = Joystick::getAxisPosition(0, Joystick::Y) / 100.;
+        float xWorld = Joystick::getAxisPosition(0, Joystick::Z) / 100.;
+        float yWorld = Joystick::getAxisPosition(0, Joystick::R) / 100.;
+
+//        float xBall = 0.;
+//        float yBall = 0.;
+//        if (Keyboard::isKeyPressed(Keyboard::Left)) xBall = -1.;
+//        if (Keyboard::isKeyPressed(Keyboard::Right)) xBall = 1.;
+//        if (Keyboard::isKeyPressed(Keyboard::Up)) yBall = -1.;
+//        if (Keyboard::isKeyPressed(Keyboard::Down)) yBall = 1.;
 
         //TODO: Need to take into account the rotation of the world
-        float scale = 50.;
-        if (is4K) scale /= 2.;
+        float scale = 5.;
+        if (is4K) scale *= 2.;
 
-        ball.a = Eigen::Vector3f(xBall / scale, yBall / scale, 0.);
+        float newX, newY, newX2, newY2;
+        rotateCoord(level.rotation, (sf::Vector2i) level.chromaMap.getSize(), pawn.getPosition().x + xBall, pawn.getPosition().y + yBall, newX2, newY2);
+        rotateCoord(level.rotation, (sf::Vector2i) level.chromaMap.getSize(), pawn.getPosition().x, pawn.getPosition().y, newX, newY);
 
-        if (xWorld*xWorld + yWorld*yWorld > 100. && false)
+        ball.a = scale * Eigen::Vector3f(newX2 - newX, newY2 - newY, 0.f).normalized() * Eigen::Vector2f(xBall, yBall).norm();
+        cout << ball.a << endl;
+        cout << "Ball : " << xBall << "; " << yBall << endl;
+
+        if (xWorld*xWorld + yWorld*yWorld > 0.01)
         {
-            float dTheta = xWorld / 100. * 2. * M_PI;
-
-            float dPhi = -yWorld / 100. * M_PI;
-
-            Matrix3f thetaRot;
-            thetaRot <<     cos(dTheta),    -sin(dTheta), 0.,
-                            sin(dTheta),     cos(dTheta), 0.,
-                            0.,              0.,          1.;
-
-            Matrix3f phiRot;
-            phiRot <<       cos(dPhi),      0.,     sin(dPhi),
-                            0.,             1.,     0.,
-                            -sin(dPhi),     0.,     cos(dPhi);
-
-
 //            float thetaBall = ball.x / referenceMap.getSize().x * M_PI - M_PI;
 //            float phiBall = ball.y / referenceMap.getSize().y * M_PI;
 //
 //            Eigen::Vector3f pawnPos = rotation.transpose() * Eigen::Vector3f(sin(phiBall)*cos(thetaBall), sin(phiBall)*sin(thetaBall), cos(phiBall));
 
-            float ballOffSet = -pawn.getPosition().x / level.referenceMap.getSize().x * M_PI - M_PI;
-//            acos(pawnPos(2));
-            Matrix3f phiRotBallAdapt;
-            phiRotBallAdapt <<  cos(ballOffSet),    -sin(ballOffSet), 0.,
-                                sin(ballOffSet),     cos(ballOffSet), 0.,
-                                0.,                  0.,              1.;
-            level.rotation = phiRotBallAdapt * thetaRot * phiRot * phiRotBallAdapt.transpose() * level.rotation;
+            level.rotation = rotBallAdapt * thetaRot * phiRot * rotBallAdapt.transpose() * level.rotation;
 
-            cout << level.rotation << endl;
+//            cout << level.rotation << endl;
             level.rotateWorld();
             ball.a += Eigen::Vector3f(-xWorld / scale, -yWorld / scale, 0.);
         }
@@ -191,7 +178,6 @@ bool isArrived(Ball ball, Eigen::Vector2f goal)
 
 void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &ball)
 {
-    //For now it's just some basic message, need to create a pop-up or something
     cout << "Well done, you finished the " << levelNumber << " level!" << endl;
 
     int textSize = 30;
@@ -209,7 +195,7 @@ void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &
         Event event;
         while (window.pollEvent(event))
         {
-            if (event.type == Event::JoystickButtonPressed) window.close();
+            if (event.type == Event::JoystickButtonPressed || event.type == Event::Closed) window.close();
         }
         window.clear();
         window.draw(text);
@@ -218,8 +204,8 @@ void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &
 
     levelNumber++;
     level = new Level(levelNumber, is4K);
-    ball.x = level->chromaMap.getSize().x / 2;  //Will need to add the margin
-    ball.y = level->chromaMap.getSize().y / 2;
+    ball.x = level->chromaMap.getSize().x / 2;
+    ball.y = level->chromaMap.getSize().y / 2;  //Will need to add the margin
 
     window.create(VideoMode(level->chromaMap.getSize().x, level->chromaMap.getSize().y), "Chroma-depth maze", Style::Fullscreen);
 }
@@ -256,11 +242,11 @@ int main( int argc, char * argv[] )
     for (Vector4i hole : level->holesList)
         cout << hole(0) << "; " << hole(1) << "; " << hole(2) << "; " << hole(3) << endl << endl;
 
-    level->saveZMap("zMap_grey.png");
+    level->saveZMap("z_maps/zMap_grey.png");
 
 
-//    Ball ball(660, 480, Eigen::Vector3f(0., 0., 0.));
-    Ball ball(1300, 693, Eigen::Vector3f(20., 0., 0.));
+    Ball ball(960, 480, Eigen::Vector3f(0., 0., 0.));
+//    Ball ball(1300, 693, Eigen::Vector3f(20., 0., 0.));
     ball.z = level->zMap(ball.x, ball.y);
     ball.radius = 10. + ball.z / 20.;
     ball.to4K(is4K);

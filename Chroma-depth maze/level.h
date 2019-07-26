@@ -18,6 +18,22 @@ using namespace Eigen;
 using namespace std;
 using namespace sf;
 
+
+void rotateCoord(Matrix3f rotation, sf::Vector2i size, float i, float j, float &newI, float &newJ)
+{
+    float theta = (float) i / size.x * 2. * M_PI - M_PI;
+    float phi = (float) j / size.y * M_PI;
+
+    Eigen::Vector3f newCartesianPos = rotation * Eigen::Vector3f(sin(phi)*cos(theta), sin(phi)*sin(theta), cos(phi));
+
+    float newPhi = acos(newCartesianPos(2));
+    float newTheta = atan2(newCartesianPos(1), newCartesianPos(0)) + M_PI;
+
+
+    newI = min((double) size.x - 1, (float) newTheta * size.x / (2*M_PI));
+    newJ = min((double) size.y - 1, (float) newPhi * size.y / (M_PI));
+}
+
 class Level
 {
 public:
@@ -62,19 +78,9 @@ public:
         {
             for (int j = 0; j < size.y; j++)
             {
-                float theta = (float) i / size.x * 2. * M_PI - M_PI;
-                float phi = (float) j / size.y * M_PI;
-
-                Eigen::Vector3f newCartesianPos = rotation * Eigen::Vector3f(sin(phi)*cos(theta), sin(phi)*sin(theta), cos(phi));
-
-                float newPhi = acos(newCartesianPos(2));
-                float newTheta = atan2(newCartesianPos(1), newCartesianPos(0)) + M_PI;
-
-
-                int newI = min((double) size.x - 1, (float) newTheta * size.x / (2*M_PI));
-                int newJ = min((double) size.y - 1, (float) newPhi * size.y / (M_PI));
-
-                chromaMap.setPixel(i, j, referenceMap.getPixel(newI, newJ));
+                float newI, newJ;
+                rotateCoord(rotation, size, i, j , newI, newJ);
+                chromaMap.setPixel(i, j, referenceMap.getPixel((int) newI, (int) newJ));
             }
         }
     }
@@ -88,6 +94,7 @@ public:
         Eigen::Vector3f v = ball.v;
 
         Eigen::Vector3f normal = normalMap((int) ball.x, (int) ball.y);
+        if (is4K) normal *= 2.;
         v += 10. * elapsedTime.asSeconds() * (gravitation + normal + ball.a);
 
         float distance = (elapsedTime.asSeconds() * v).norm();
@@ -111,6 +118,7 @@ public:
                 pos += radius * direction;
                 if (pos(0) > zMap.rows() - 1) pos(0) -= zMap.rows();
                 if (pos(0) < 0.) pos(0) += zMap.rows();
+
                 pos(1) = max(min(zMap.cols()-1.f, pos(1)), 0.f);
 
                 if (zMap((int) pos(0), (int) pos(1)) - pos(2) > ball.realRadius)    /* There's a wall */
@@ -147,7 +155,7 @@ public:
         ball.x = pos(0);
         ball.y = pos(1);
         ball.z = zMap((int) ball.x, (int) ball.y);
-        if (is4K) ball.radius = 20. + ball.z / 20;
+        if (is4K) ball.radius = 20. + ball.z/2. / 20;
         else ball.radius = 10. + ball.z / 20.;
     }
 
