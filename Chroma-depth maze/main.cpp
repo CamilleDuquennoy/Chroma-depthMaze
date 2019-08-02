@@ -18,6 +18,7 @@ using namespace sf;
 
 int levelNumber = 0;
 bool is4K = false;
+float offSet = 60.;
 
 Font font;
 
@@ -31,12 +32,25 @@ void setPawnPosition(CircleShape &pawn, Ball ball, Image chromaMap, Matrix3f rot
     newX = max(0.f, newX - ball.radius);
     newY = max(0.f, newY - ball.radius);
 
-    pawn.setPosition(newX, newY);
+    pawn.setPosition(newX, newY + offSet);
 }
 
-void checkControllerState(Window &window, Ball &ball, CircleShape &pawn, Level &level)
+void addAccelerationToBall(Ball &ball, CircleShape pawn, Level level, float xBall, float yBall)
+{
+    float scale = 5.;
+    if (is4K) scale *= 2.;
+
+    float newX, newY, newX2, newY2;
+    rotateCoord(level.rotation, (sf::Vector2i) level.chromaMap.getSize(), pawn.getPosition().x + xBall, pawn.getPosition().y + yBall - offSet, newX2, newY2);
+    rotateCoord(level.rotation, (sf::Vector2i) level.chromaMap.getSize(), pawn.getPosition().x, pawn.getPosition().y - offSet, newX, newY);
+
+    ball.a = scale * Eigen::Vector3f(newX2 - newX, newY2 - newY, 0.f).normalized() * Eigen::Vector2f(xBall, yBall).norm();
+}
+
+void checkControllerState(Window &window, Ball &ball, CircleShape pawn, Level &level)
 {
     Joystick::update();
+
 
     if (Joystick::hasAxis(0, Joystick::X) || true)
     {
@@ -51,31 +65,22 @@ void checkControllerState(Window &window, Ball &ball, CircleShape &pawn, Level &
 //        if (Keyboard::isKeyPressed(Keyboard::Right)) xBall = 1.;
 //        if (Keyboard::isKeyPressed(Keyboard::Up)) yBall = -1.;
 //        if (Keyboard::isKeyPressed(Keyboard::Down)) yBall = 1.;
-
-        //TODO: Need to take into account the rotation of the world
-        float scale = 5.;
-        if (is4K) scale *= 2.;
-
-        float newX, newY, newX2, newY2;
-        rotateCoord(level.rotation, (sf::Vector2i) level.chromaMap.getSize(), pawn.getPosition().x + xBall, pawn.getPosition().y + yBall, newX2, newY2);
-        rotateCoord(level.rotation, (sf::Vector2i) level.chromaMap.getSize(), pawn.getPosition().x, pawn.getPosition().y, newX, newY);
-
-        ball.a = scale * Eigen::Vector3f(newX2 - newX, newY2 - newY, 0.f).normalized() * Eigen::Vector2f(xBall, yBall).norm();
-        cout << ball.a << endl;
-        cout << "Ball : " << xBall << "; " << yBall << endl;
+        addAccelerationToBall(ball, pawn, level, xBall, yBall);
 
         if (xWorld*xWorld + yWorld*yWorld > 0.01)
         {
-//            float thetaBall = ball.x / referenceMap.getSize().x * M_PI - M_PI;
-//            float phiBall = ball.y / referenceMap.getSize().y * M_PI;
+            float thetaBall = (pawn.getPosition().x + pawn.getRadius()) / level.referenceMap.getSize().x * 2. * M_PI - M_PI;
+            float phiBall = (pawn.getPosition().y + pawn.getRadius() - offSet) / level.referenceMap.getSize().y * M_PI - M_PI / 2.;
 //
 //            Eigen::Vector3f pawnPos = rotation.transpose() * Eigen::Vector3f(sin(phiBall)*cos(thetaBall), sin(phiBall)*sin(thetaBall), cos(phiBall));
 
-            level.rotation = rotBallAdapt * thetaRot * phiRot * rotBallAdapt.transpose() * level.rotation;
+            Matrix3f ballRotOffset = angleToRotation(thetaBall, phiBall);
+
+            level.rotation = ballRotOffset.inverse() * angleToRotation(-xWorld, -yWorld/2.) * ballRotOffset * level.rotation;
 
 //            cout << level.rotation << endl;
             level.rotateWorld();
-            ball.a += Eigen::Vector3f(-xWorld / scale, -yWorld / scale, 0.);
+            addAccelerationToBall(ball, pawn, level, -xWorld * 20., -yWorld * 20.);
         }
     }
 }
@@ -204,8 +209,9 @@ void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &
 
     levelNumber++;
     level = new Level(levelNumber, is4K);
-    ball.x = level->chromaMap.getSize().x / 2;
-    ball.y = level->chromaMap.getSize().y / 2;  //Will need to add the margin
+    ball = *new Ball();
+    ball.x = level->chromaMap.getSize().x / 2;  // Need to adapt to the map
+    ball.y = level->chromaMap.getSize().y / 2;
 
     window.create(VideoMode(level->chromaMap.getSize().x, level->chromaMap.getSize().y), "Chroma-depth maze", Style::Fullscreen);
 }
@@ -213,8 +219,10 @@ void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &
 int main( int argc, char * argv[] )
 {
     Level* level = new Level(levelNumber, is4K);
-    RenderWindow window(VideoMode(level->chromaMap.getSize().x, level->chromaMap.getSize().y), "Chroma-depth maze", Style::Fullscreen);
-    window.setJoystickThreshold(50);    //Need to adapt to the game controller
+    cout << "Goal: " << level->goal(0) << "; " << level->goal(1) << endl;
+    sf::Vector2u size = level->chromaMap.getSize();
+    RenderWindow window(VideoMode(size.x, size.y), "Chroma-depth maze", Style::Fullscreen);
+    window.setJoystickThreshold(20);    //Need to adapt to the game controller
 
     font.loadFromFile("ARIALN.TTF");
 
@@ -234,9 +242,11 @@ int main( int argc, char * argv[] )
 
     if (is4K)
     {
+        offSet = 120.;
         pawn.setRadius(2*pawn.getRadius());
         pawn.setOutlineThickness(2*pawn.getOutlineThickness());
     }
+    sprite.setPosition(0., offSet);
 
     cout << "Holes' list :" << endl;
     for (Vector4i hole : level->holesList)
@@ -245,7 +255,7 @@ int main( int argc, char * argv[] )
     level->saveZMap("z_maps/zMap_grey.png");
 
 
-    Ball ball(960, 480, Eigen::Vector3f(0., 0., 0.));
+    Ball ball(size.x / 2., size.y / 2., Eigen::Vector3f(0., 0., 0.));
 //    Ball ball(1300, 693, Eigen::Vector3f(20., 0., 0.));
     ball.z = level->zMap(ball.x, ball.y);
     ball.radius = 10. + ball.z / 20.;
@@ -268,7 +278,6 @@ int main( int argc, char * argv[] )
         checkControllerState(window, ball, pawn, *level);
         level->makeBallFall(ball, elapsedTime);
 
-        //TODO: add an arrival check, later
         texture.update(level->chromaMap);
 
         pawn.setRadius(ball.radius);

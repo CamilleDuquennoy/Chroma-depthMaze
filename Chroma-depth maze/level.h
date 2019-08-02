@@ -19,6 +19,21 @@ using namespace std;
 using namespace sf;
 
 
+Matrix3f angleToRotation(float theta, float phi)
+{
+    Matrix3f thetaRot;
+    thetaRot <<     cos(theta),    -sin(theta), 0.,
+                    sin(theta),     cos(theta), 0.,
+                    0.,              0.,          1.;
+
+    Matrix3f phiRot;
+    phiRot <<       cos(phi),      0.,     sin(phi),
+                    0.,             1.,     0.,
+                    -sin(phi),     0.,     cos(phi);
+
+    return thetaRot * phiRot;
+}
+
 void rotateCoord(Matrix3f rotation, sf::Vector2i size, float i, float j, float &newI, float &newJ)
 {
     float theta = (float) i / size.x * 2. * M_PI - M_PI;
@@ -169,21 +184,11 @@ public:
         float dTheta = dX / (float) size.x * 2. * M_PI;
         float dPhi = dY / (float) size.y * M_PI;
 
-        Matrix3f thetaRot;
-        thetaRot <<     cos(dTheta),    -sin(dTheta), 0.,
-                        sin(dTheta),     cos(dTheta), 0.,
-                        0.,              0.,          1.;
-
-        Matrix3f phiRot;
-        phiRot <<       cos(dPhi),      0.,     sin(dPhi),
-                        0.,             1.,     0.,
-                        -sin(dPhi),     0.,     cos(dPhi);
-
-        rotation = thetaRot * phiRot * rotation;
+        rotation = angleToRotation(dTheta, dPhi) * rotation;
 
         rotateWorld();
 
-        pawn.setPosition(size.x - 2, size.y - 2);
+        pawn.setPosition(size.x/2, size.y/2);
 
         cout << "Finished centering the map" << endl;
     }
@@ -307,7 +312,7 @@ private:
 
                             else
                             {
-                                if (G > 0.025)
+                                if (G > 0.1)
                                     z = (G / 2 - B) * zMax;
 
                                 else
