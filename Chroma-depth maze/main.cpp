@@ -16,9 +16,10 @@ using namespace Eigen;
 using namespace std;
 using namespace sf;
 
+int levelMax = 3;
 int levelNumber = 0;
 bool is4K = false;
-float offSet = 60.;
+float offSet = 0.;
 
 Font font;
 
@@ -51,8 +52,7 @@ void checkControllerState(Window &window, Ball &ball, CircleShape pawn, Level &l
 {
     Joystick::update();
 
-
-    if (Joystick::hasAxis(0, Joystick::X) || true)
+    if (Joystick::isConnected(0))
     {
         float xBall = Joystick::getAxisPosition(0, Joystick::X) / 100.;
         float yBall = Joystick::getAxisPosition(0, Joystick::Y) / 100.;
@@ -74,9 +74,9 @@ void checkControllerState(Window &window, Ball &ball, CircleShape pawn, Level &l
 //
 //            Eigen::Vector3f pawnPos = rotation.transpose() * Eigen::Vector3f(sin(phiBall)*cos(thetaBall), sin(phiBall)*sin(thetaBall), cos(phiBall));
 
-            Matrix3f ballRotOffset = angleToRotation(thetaBall, phiBall);
+            Matrix3f ballRotOffset = angleToRotation(thetaBall, 0.);
 
-            level.rotation = ballRotOffset.inverse() * angleToRotation(-xWorld, -yWorld/2.) * ballRotOffset * level.rotation;
+            level.rotation = angleToRotation(-xWorld, 0.) * angleToRotation(0., -yWorld/2.) * ballRotOffset.inverse() * level.rotation;
 
 //            cout << level.rotation << endl;
             level.rotateWorld();
@@ -121,14 +121,13 @@ void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Cl
             switch (event.joystickButton.button)
                 {
                 case 0: /*Square*/
-                    //Grid option
                     level.gridOption = !level.gridOption;
                     level.update();
                     break;
 
                 case 1: /*Cross*/
                     cout << "Centering the map" << endl;
-                    level.centerMap(pawn);
+                    level.centerMap(ball);
                     break;
 
                 case 2: /*Circle*/
@@ -141,8 +140,14 @@ void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Cl
                     level.update();
                     break;
 
-                case 4:
+                case 4: /*L1*/
                     cout << "ball : " << ball.x << "; " << ball.y << " at " << ball.z << endl << "pawn : " << pawn.getPosition().x << "; " << pawn.getPosition().y << endl;
+                    break;
+
+                case 5: /*R1*/
+                    level.rotation = Matrix3f::Identity();
+                    level.update();
+                    break;
                 }
             break;
 
@@ -155,7 +160,7 @@ void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Cl
             cout << "Key " << event.key.code << " pressed" << endl;
 
             if (event.key.code == Keyboard::Enter)
-                level.centerMap(pawn);
+                level.centerMap(ball);
 
             if (event.key.code == Keyboard::Escape)
                 window.create(VideoMode(window.getSize().x, window.getSize().y), "Chroma-depth maze", Style::Default);
@@ -183,37 +188,62 @@ bool isArrived(Ball ball, Eigen::Vector2f goal)
 
 void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &ball)
 {
-    cout << "Well done, you finished the " << levelNumber << " level!" << endl;
+    cout << "Well done, you've finished level " << levelNumber << "!" << endl;
 
     int textSize = 30;
     if (is4K) textSize *= 2;
-    Text text("   Well done, you've finished the level! \nClick on any button to go to the next one", font, textSize);
-    text.setColor(Color::White);
-    //center text
-    sf::FloatRect textRect = text.getLocalBounds();
-    text.setOrigin(textRect.left + textRect.width/2.0f,
-                   textRect.top  + textRect.height/2.0f);
-    text.setPosition(window.getSize().x / 2., window.getSize().y / 2.);
-
-    while(window.isOpen())
+    if (levelNumber < levelMax)
     {
-        Event event;
-        while (window.pollEvent(event))
+        Text text("   Well done, you've finished the level! \nClick on any button to go to the next one", font, textSize);
+        text.setColor(Color::White);
+        //TODO: center text
+        sf::FloatRect textRect = text.getLocalBounds();
+        text.setOrigin(textRect.left + textRect.width/2.0f,
+                       textRect.top  + textRect.height/2.0f);
+        text.setPosition(window.getSize().x / 2., window.getSize().y / 2.);
+
+        while(window.isOpen())
         {
-            if (event.type == Event::JoystickButtonPressed || event.type == Event::Closed) window.close();
+            Event event;
+            while (window.pollEvent(event))
+            {
+                if (event.type == Event::JoystickButtonPressed || event.type == Event::Closed) window.close();
+            }
+            window.clear();
+            window.draw(text);
+            window.display();
         }
-        window.clear();
-        window.draw(text);
-        window.display();
+
+        levelNumber++;
+        level = new Level(levelNumber, is4K);   //TODO: have it loaded while the message is displayed
+        ball = *new Ball();
+        ball.x = level->chromaMap.getSize().x / 3;  //TODO: adapt to the map
+        ball.y = level->chromaMap.getSize().y / 2;
+
+        window.create(VideoMode(level->chromaMap.getSize().x, level->chromaMap.getSize().y), "Chroma-depth maze", Style::Fullscreen);
     }
+    else
+    {
+        Text text("   Well done, you've finished all the levels! \nClick on any button to go to exit the game", font, textSize);
+        text.setColor(Color::White);
+        //TODO: center text
+        sf::FloatRect textRect = text.getLocalBounds();
+        text.setOrigin(textRect.left + textRect.width/2.0f,
+                       textRect.top  + textRect.height/2.0f);
+        text.setPosition(window.getSize().x / 2., window.getSize().y / 2.);
 
-    levelNumber++;
-    level = new Level(levelNumber, is4K);
-    ball = *new Ball();
-    ball.x = level->chromaMap.getSize().x / 2;  // Need to adapt to the map
-    ball.y = level->chromaMap.getSize().y / 2;
-
-    window.create(VideoMode(level->chromaMap.getSize().x, level->chromaMap.getSize().y), "Chroma-depth maze", Style::Fullscreen);
+        while(window.isOpen())
+        {
+            Event event;
+            while (window.pollEvent(event))
+            {
+                if (event.type == Event::JoystickButtonPressed || event.type == Event::Closed) window.close();
+            }
+            window.clear();
+            window.draw(text);
+            window.display();
+        }
+    }
 }
 
 int main( int argc, char * argv[] )

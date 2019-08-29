@@ -60,8 +60,6 @@ class Ball
         {
             if (is4K)
             {
-                x *= 2.;
-                y *= 2.;
                 realRadius *= 2.;
                 v *= 2.;
                 a *= 2.;

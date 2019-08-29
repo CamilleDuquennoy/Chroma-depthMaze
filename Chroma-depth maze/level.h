@@ -108,7 +108,9 @@ public:
         Eigen::Vector3f beforePos(ball.x , ball.y, ball.z);
         Eigen::Vector3f v = ball.v;
 
+        cout << "Ball: " << ball.x << "; " << ball.y << endl << "NormalMap: "  << normalMap.rows() << "; " << normalMap.cols() << endl;
         Eigen::Vector3f normal = normalMap((int) ball.x, (int) ball.y);
+        cout << "truc" << endl;
         if (is4K) normal *= 2.;
         v += 10. * elapsedTime.asSeconds() * (gravitation + normal + ball.a);
 
@@ -174,21 +176,19 @@ public:
         else ball.radius = 10. + ball.z / 20.;
     }
 
-    void centerMap(CircleShape &pawn)
+    void centerMap(Ball ball)
     {
         sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
 
         /* We use the opposite rotation */
-        float dX = (float) pawn.getPosition().x + pawn.getRadius() - size.x / 2.;
-        float dY = (float) pawn.getPosition().y + pawn.getRadius() - size.y / 2.;
+        float dX = (float) ball.x - size.x / 2.;
+        float dY = (float) ball.y - size.y / 2.;
         float dTheta = dX / (float) size.x * 2. * M_PI;
         float dPhi = dY / (float) size.y * M_PI;
 
-        rotation = angleToRotation(dTheta, dPhi) * rotation;
+        rotation = angleToRotation(dTheta, dPhi);
 
         rotateWorld();
-
-        pawn.setPosition(size.x/2, size.y/2);
 
         cout << "Finished centering the map" << endl;
     }
