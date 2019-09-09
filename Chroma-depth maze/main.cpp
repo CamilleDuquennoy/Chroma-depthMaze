@@ -44,6 +44,7 @@ void addAccelerationToBall(Ball &ball, CircleShape pawn, Level level, float xBal
 {
     float scale = 5.;
     if (mode == 1) scale *= 2.;
+    if (mode == 2) scale /= 2.;
 
     float newX, newY, newX2, newY2;
     rotateCoord(level.rotation, (sf::Vector2i) level.chromaMap.getSize(), pawn.getPosition().x + xBall, pawn.getPosition().y + yBall - offSet, newX2, newY2);
@@ -187,6 +188,7 @@ bool isArrived(Ball ball, Eigen::Vector2f goal)
     float distanceToGoal = pow(ball.x - goal(0), 2) + pow(ball.y - goal(1), 2);
     float distMin = 100.;
     if (mode == 1) distMin *= 4;
+    if (mode == 2) distMin /= 4;
     return (distanceToGoal < distMin);
 }
 
@@ -224,7 +226,7 @@ void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &
         ball.x = level->chromaMap.getSize().x / 3;  //TODO: adapt to the map
         ball.y = level->chromaMap.getSize().y / 2;
 
-        window.create(VideoMode(level->chromaMap.getSize().x, level->chromaMap.getSize().y), "Chroma-depth maze", Style::Fullscreen);
+        window.create(VideoMode(level->chromaMap.getSize().x, level->chromaMap.getSize().y), "Chroma-depth maze", Style::Default);
     }
     else
     {
@@ -255,7 +257,7 @@ int main( int argc, char * argv[] )
     Level* level = new Level(levelNumber, mode);
     cout << "Goal: " << level->goal(0) << "; " << level->goal(1) << endl;
     sf::Vector2u size = level->chromaMap.getSize();
-    RenderWindow window(VideoMode(size.x, size.y), "Chroma-depth maze", Style::Fullscreen);
+    RenderWindow window(VideoMode(size.x, size.y), "Chroma-depth maze", Style::Default);
     window.setJoystickThreshold(20);    //Need to adapt to the game controller
 
     font.loadFromFile("ARIALN.TTF");
@@ -279,6 +281,12 @@ int main( int argc, char * argv[] )
         offSet = 120.;
         pawn.setRadius(2*pawn.getRadius());
         pawn.setOutlineThickness(2*pawn.getOutlineThickness());
+    }
+    if (mode == 2)
+    {
+        offSet = 0.;
+        pawn.setRadius(2/pawn.getRadius());
+        pawn.setOutlineThickness(2/pawn.getOutlineThickness());
     }
     sprite.setPosition(0., offSet);
 

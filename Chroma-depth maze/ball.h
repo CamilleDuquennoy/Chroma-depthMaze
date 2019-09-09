@@ -64,5 +64,11 @@ class Ball
                 v *= 2.;
                 a *= 2.;
             }
+            if (mode == 2)
+            {
+                realRadius /= 2.;
+                v /= 2.;
+                a /= 2.;
+            }
         }
 };
