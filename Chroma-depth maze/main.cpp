@@ -18,14 +18,14 @@ using namespace sf;
 
 int levelMax = 3;
 int levelNumber = 0;
-int mode = 3;   /*0 is normal HD screen, 1 is 4K Geo-Cosmos, 2 is worldeye screen, 3 is normal screen in sphere mode*/
+int mode = 2;   /*0 is normal HD screen, 1 is 4K Geo-Cosmos, 2 is worldeye screen, 3 is normal screen in sphere mode*/
 float offSet = 0.;
 
 Font font;
 
-void setPawnPosition(CircleShape &pawn, Ball ball, Image chromaMap, Matrix3f rotation)
+void setPawnPosition(CircleShape &pawn, Ball ball, Image referenceMap, Matrix3f rotation)
 {
-    sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
+    sf::Vector2i size = (sf::Vector2i) referenceMap.getSize();
 
     float newX, newY;
     rotateCoord(rotation.inverse(), size, ball.x, ball.y, newX, newY);
@@ -33,10 +33,19 @@ void setPawnPosition(CircleShape &pawn, Ball ball, Image chromaMap, Matrix3f rot
     newX = max(0.f, newX - ball.radius);
     newY = max(0.f, newY - ball.radius);
 
-    float x, y;
+    float x = newX;
+    float y = newY;
 
-    sphericalToCartesian(newX, newY, x, y, size);
-
+    if (mode > 1)
+    {
+        if (mode == 2)
+        {
+            x = x / size.x * 1280;
+            y = y / size.y * 720;
+            size = sf::Vector2i(1280, 720);
+        }
+        sphericalToCartesian(newX, newY, x, y, size);
+    }
     pawn.setPosition(x, y + offSet);
 }
 
@@ -153,6 +162,18 @@ void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Cl
                     level.rotation = Matrix3f::Identity();
                     level.update();
                     break;
+
+                case 12: /*Playstation*/
+                    if (mode == 0)
+                    {
+                        mode = 3;
+                        level.rotateWorld();
+                    }
+                    else if (mode == 3)
+                    {
+                        mode = 0;
+                        level.switchToSphericalDisplay();
+                    }
                 }
             break;
 
@@ -257,6 +278,7 @@ int main( int argc, char * argv[] )
     Level* level = new Level(levelNumber, mode);
     cout << "Goal: " << level->goal(0) << "; " << level->goal(1) << endl;
     sf::Vector2u size = level->chromaMap.getSize();
+    sf::Vector2u refSize = level->referenceMap.getSize();
     RenderWindow window(VideoMode(size.x, size.y), "Chroma-depth maze", Style::Default);
     window.setJoystickThreshold(20);    //Need to adapt to the game controller
 
@@ -297,9 +319,10 @@ int main( int argc, char * argv[] )
     level->saveZMap("z_maps/zMap_grey.png");
 
 
-    Ball ball(size.x / 2., size.y / 2., Eigen::Vector3f(0., 0., 0.));
+    Ball ball(refSize.x / 2., refSize.y / 2., Eigen::Vector3f(0., 0., 0.));
 //    Ball ball(1300, 693, Eigen::Vector3f(20., 0., 0.));
     ball.z = level->zMap(ball.x, ball.y);
+    cout << ball.z << "!" << endl;
     ball.radius = 10. + ball.z / 20.;
     ball.to4K(mode);
 

@@ -94,25 +94,28 @@ public:
         buildSphereMap();
 
         if (mode > 1)
-        {
-            sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
-            if (mode == 2) size = sf::Vector2i(1280, 720);
-            chromaMap.create(size.x, size.y, Color::Black);
-
-            for (int i = size.x/4; i < 3*size.x/4; i++)
-            {
-                for (int j = 0; j < size.y; j++)
-                {
-                    float x, y;
-                    sphericalToCartesian(i, j, x, y, size);
-
-                    chromaMap.setPixel(x, y, referenceMap.getPixel(i * referenceMap.getSize().x / size.x, j * referenceMap.getSize().y / size.y));
-                }
-            }
-        }
+            switchToSphericalDisplay();
     }
 
     ~Level(){}
+
+    void switchToSphericalDisplay()
+    {
+        sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
+        if (mode == 2) size = sf::Vector2i(1280, 720);
+        chromaMap.create(size.x, size.y, Color::Black);
+
+        for (int i = size.x/4; i < 3*size.x/4; i++)
+        {
+            for (int j = 0; j < size.y; j++)
+            {
+                float x, y;
+                sphericalToCartesian(i, j, x, y, size);
+
+                chromaMap.setPixel(x, y, referenceMap.getPixel(i * referenceMap.getSize().x / size.x, j * referenceMap.getSize().y / size.y));
+            }
+        }
+    }
 
     void rotateWorld()
     {
@@ -162,14 +165,12 @@ public:
     {
         Eigen::Vector3f gravitation(0., 0., -1.);
         if (mode == 1) gravitation *= 2.;
-        if (mode == 2) gravitation /=2.;
 
         Eigen::Vector3f beforePos(ball.x , ball.y, ball.z);
         Eigen::Vector3f v = ball.v;
 
         Eigen::Vector3f normal = normalMap((int) ball.x, (int) ball.y);
         if (mode == 1) normal *= 2.;
-        if (mode == 2) normal /=2.;
         v += 10. * elapsedTime.asSeconds() * (gravitation + normal + ball.a);
 
         float distance = (elapsedTime.asSeconds() * v).norm();
