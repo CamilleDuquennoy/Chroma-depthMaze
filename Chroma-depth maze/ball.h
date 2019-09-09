@@ -56,9 +56,9 @@ class Ball
         }
         ~Ball(){}
 
-        void to4K(bool is4K)
+        void to4K(int mode)
         {
-            if (is4K)
+            if (mode == 1)
             {
                 realRadius *= 2.;
                 v *= 2.;

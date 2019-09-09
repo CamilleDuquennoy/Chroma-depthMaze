@@ -49,11 +49,22 @@ void rotateCoord(Matrix3f rotation, sf::Vector2i size, float i, float j, float &
     newJ = min((double) size.y - 1, (float) newPhi * size.y / (M_PI));
 }
 
+void sphericalToCartesian(int i, int j, float &x, float &y, sf::Vector2i size)
+{
+    float r = min(size.x, size.y) / 2.;
+    float theta = (float) i / size.x * 2. * M_PI - M_PI/3;
+    float phi = (float) j / size.y * M_PI;
+
+//    x = (1 + cos(phi) * sin(theta)) * r;
+    x = sin(phi) * sin(theta) * r + size.x / 2.;
+    y = -cos(phi) * r + size.y / 2.;
+}
+
 class Level
 {
 public:
 
-    bool is4K;
+    int mode = 0; /*0 is normal HD screen, 1 is 4K Geo-Cosmos, 2 is Worldeye screen, 3 is normal screen in sphere mode*/
     bool gridOption = true;
     bool textureOption = true;
     bool shadeOption = true;
@@ -69,18 +80,19 @@ public:
     list<Eigen::Vector4i> holesList;
     Eigen::Vector2f goal;
 
-    Level(int levelNum, bool is4K)
+    Level(int levelNum, int mode)
     {
         this->levelNumber = levelNum;
-        this->is4K = is4K;
+        this->mode = mode;
         loadMap(chromaMap);
         loadMap(referenceMap);
         rotation = Matrix3f::Identity();
 
         zMax = 100.;
-        if (is4K) zMax *= 4.;
+        if (mode == 1) zMax *= 4.;
 
         buildSphereMap();
+        rotateWorld();
     }
 
     ~Level(){}
@@ -89,13 +101,40 @@ public:
     {
         sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
 
-        for (int i = 0; i < size.x; i++)
+        if (mode <= 1)  //rectangular mode
         {
-            for (int j = 0; j < size.y; j++)
+            for (int i = 0; i < size.x; i++)
             {
-                float newI, newJ;
-                rotateCoord(rotation, size, i, j , newI, newJ);
-                chromaMap.setPixel(i, j, referenceMap.getPixel((int) newI, (int) newJ));
+                for (int j = 0; j < size.y; j++)
+                {
+                    float newI, newJ;
+                    rotateCoord(rotation, size, i, j , newI, newJ);
+                    chromaMap.setPixel(i, j, referenceMap.getPixel((int) newI, (int) newJ));
+                }
+            }
+        }
+
+
+        else   //sphere mode
+        {
+            sf::Vector2i newSize = size;
+            if (mode == 2) newSize = sf::Vector2i(640, 480);
+            chromaMap.create(newSize.x, newSize.y, Color::Black);
+
+            for (int i = 0; i < newSize.x; i++)
+            {
+                for (int j = 0; j < newSize.y; j++)
+                {
+                    float newI, newJ;
+                    rotateCoord(rotation, newSize, i * size.x / newSize.x, j * size.y / newSize.y, newI, newJ);
+
+                    float x, y;
+                    sphericalToCartesian(i, j, x, y, newSize);
+
+                    if (x >= 0 && y >= 0 && x < newSize.x && y < newSize.y)
+//                        chromaMap.setPixel((int) x, (int) y, referenceMap.getPixel(i, j));
+                        chromaMap.setPixel((int) x, (int) y, referenceMap.getPixel((int) newI, (int) newJ));
+                }
             }
         }
     }
@@ -103,15 +142,13 @@ public:
     void makeBallFall(Ball &ball, const Time elapsedTime)
     {
         Eigen::Vector3f gravitation(0., 0., -1.);
-        if (is4K) gravitation *= 2.;
+        if (mode == 1) gravitation *= 2.;
 
         Eigen::Vector3f beforePos(ball.x , ball.y, ball.z);
         Eigen::Vector3f v = ball.v;
 
-        cout << "Ball: " << ball.x << "; " << ball.y << endl << "NormalMap: "  << normalMap.rows() << "; " << normalMap.cols() << endl;
         Eigen::Vector3f normal = normalMap((int) ball.x, (int) ball.y);
-        cout << "truc" << endl;
-        if (is4K) normal *= 2.;
+        if (mode == 1) normal *= 2.;
         v += 10. * elapsedTime.asSeconds() * (gravitation + normal + ball.a);
 
         float distance = (elapsedTime.asSeconds() * v).norm();
@@ -159,7 +196,7 @@ public:
             for(Eigen::Vector4i hole : holesList)
             {
                 float distMin = 100.;
-                if (is4K) distMin *= 4.;
+                if (mode == 1) distMin *= 4.;
                 if (pow(pos(0) - hole(0), 2) + pow(pos(1) - hole(1), 2) <= distMin)   /* The ball is close to the hole */
                 {
                     v = Eigen::Vector3f(-v(0), v(1), -v(2));
@@ -172,7 +209,7 @@ public:
         ball.x = pos(0);
         ball.y = pos(1);
         ball.z = zMap((int) ball.x, (int) ball.y);
-        if (is4K) ball.radius = 20. + ball.z/2. / 20;
+        if (mode == 1) ball.radius = 20. + ball.z/2. / 20;
         else ball.radius = 10. + ball.z / 20.;
     }
 
@@ -203,7 +240,7 @@ public:
             for (int j = 0; j < zMap.cols(); j++)
             {
                 float z;
-                if (is4K) z = (200. + zMap(i, j) / 4.) / 300. * 255.;
+                if (mode == 1) z = (200. + zMap(i, j) / 4.) / 300. * 255.;
                 else z = (200. + zMap(i, j)) / 300. * 255.;
                 img.setPixel(i, j, Color(z, z, z));
             }
@@ -235,7 +272,7 @@ private:
         }
         mapPath += "/map";
 
-        if (is4K) mapPath += "_4K";
+        if (mode == 1) mapPath += "_4K";
 
         if (gridOption || textureOption || shadeOption) mapPath += "_";
         if (gridOption) mapPath += "G";
@@ -267,7 +304,7 @@ private:
         }
 
         zMapPath += "/z_map_hole";
-        if (is4K) zMapPath += "_4K";
+        if (mode == 1) zMapPath += "_4K";
         zMapPath += ".png";
 
         if (!zImage.loadFromFile(zMapPath))
@@ -360,7 +397,7 @@ private:
         }
 
         int margin = 25;
-        if (is4K) margin *= 2;
+        if (mode == 1) margin *= 2;
         for (int i = margin; i < normalMap.rows() - margin; i++)
         {
             for (int j = margin; j < normalMap.cols() - margin; j++)
@@ -374,7 +411,7 @@ private:
                 float zNormal = zMap(i, j);
 
                 float wallLimit = 50.;
-                if (is4K) wallLimit *= 4;
+                if (mode == 1) wallLimit *= 4;
                 if (abs(iPlus - zNormal) > wallLimit)
                     iPlus = zNormal;
                 if (abs(iMinus - zNormal) > wallLimit)

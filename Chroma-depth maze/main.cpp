@@ -18,7 +18,7 @@ using namespace sf;
 
 int levelMax = 3;
 int levelNumber = 0;
-bool is4K = false;
+int mode = 3;   /*0 is normal HD screen, 1 is 4K Geo-Cosmos, 2 is worldeye screen, 3 is normal screen in sphere mode*/
 float offSet = 0.;
 
 Font font;
@@ -33,13 +33,17 @@ void setPawnPosition(CircleShape &pawn, Ball ball, Image chromaMap, Matrix3f rot
     newX = max(0.f, newX - ball.radius);
     newY = max(0.f, newY - ball.radius);
 
-    pawn.setPosition(newX, newY + offSet);
+    float x, y;
+
+    sphericalToCartesian(newX, newY, x, y, size);
+
+    pawn.setPosition(x, y + offSet);
 }
 
 void addAccelerationToBall(Ball &ball, CircleShape pawn, Level level, float xBall, float yBall)
 {
     float scale = 5.;
-    if (is4K) scale *= 2.;
+    if (mode == 1) scale *= 2.;
 
     float newX, newY, newX2, newY2;
     rotateCoord(level.rotation, (sf::Vector2i) level.chromaMap.getSize(), pawn.getPosition().x + xBall, pawn.getPosition().y + yBall - offSet, newX2, newY2);
@@ -182,7 +186,7 @@ bool isArrived(Ball ball, Eigen::Vector2f goal)
 {
     float distanceToGoal = pow(ball.x - goal(0), 2) + pow(ball.y - goal(1), 2);
     float distMin = 100.;
-    if (is4K) distMin *= 4;
+    if (mode == 1) distMin *= 4;
     return (distanceToGoal < distMin);
 }
 
@@ -191,11 +195,11 @@ void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &
     cout << "Well done, you've finished level " << levelNumber << "!" << endl;
 
     int textSize = 30;
-    if (is4K) textSize *= 2;
+    if (mode == 1) textSize *= 2;
     if (levelNumber < levelMax)
     {
         Text text("   Well done, you've finished the level! \nClick on any button to go to the next one", font, textSize);
-        text.setColor(Color::White);
+        text.setFillColor(Color::White);
         //TODO: center text
         sf::FloatRect textRect = text.getLocalBounds();
         text.setOrigin(textRect.left + textRect.width/2.0f,
@@ -215,7 +219,7 @@ void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &
         }
 
         levelNumber++;
-        level = new Level(levelNumber, is4K);   //TODO: have it loaded while the message is displayed
+        level = new Level(levelNumber, mode);   //TODO: have it loaded while the message is displayed
         ball = *new Ball();
         ball.x = level->chromaMap.getSize().x / 3;  //TODO: adapt to the map
         ball.y = level->chromaMap.getSize().y / 2;
@@ -225,7 +229,7 @@ void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &
     else
     {
         Text text("   Well done, you've finished all the levels! \nClick on any button to go to exit the game", font, textSize);
-        text.setColor(Color::White);
+        text.setFillColor(Color::White);
         //TODO: center text
         sf::FloatRect textRect = text.getLocalBounds();
         text.setOrigin(textRect.left + textRect.width/2.0f,
@@ -248,7 +252,7 @@ void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &
 
 int main( int argc, char * argv[] )
 {
-    Level* level = new Level(levelNumber, is4K);
+    Level* level = new Level(levelNumber, mode);
     cout << "Goal: " << level->goal(0) << "; " << level->goal(1) << endl;
     sf::Vector2u size = level->chromaMap.getSize();
     RenderWindow window(VideoMode(size.x, size.y), "Chroma-depth maze", Style::Fullscreen);
@@ -270,7 +274,7 @@ int main( int argc, char * argv[] )
     pawn.setOutlineColor(sf::Color(255, 255, 255, 150));
     pawn.setOutlineThickness(2.f);
 
-    if (is4K)
+    if (mode == 1)
     {
         offSet = 120.;
         pawn.setRadius(2*pawn.getRadius());
@@ -289,7 +293,7 @@ int main( int argc, char * argv[] )
 //    Ball ball(1300, 693, Eigen::Vector3f(20., 0., 0.));
     ball.z = level->zMap(ball.x, ball.y);
     ball.radius = 10. + ball.z / 20.;
-    ball.to4K(is4K);
+    ball.to4K(mode);
 
     Clock clock;
     Time elapsedTime;
