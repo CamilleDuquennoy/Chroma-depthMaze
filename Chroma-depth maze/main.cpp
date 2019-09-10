@@ -23,7 +23,7 @@ float offSet = 0.;
 
 Font font;
 
-void setPawnPosition(CircleShape &pawn, Ball ball, Image referenceMap, Matrix3f rotation)
+void setPawnPosition(CircleShape &pawn, Ball &ball, Image referenceMap, Matrix3f rotation)
 {
     sf::Vector2i size = (sf::Vector2i) referenceMap.getSize();
 
@@ -38,14 +38,21 @@ void setPawnPosition(CircleShape &pawn, Ball ball, Image referenceMap, Matrix3f 
 
     if (mode > 1)
     {
+        if (newX <= size.x/4 || newX >= 3*size.x/4)
+            ball.visible = false;
+        else
+            ball.visible = true;
+
+        sphericalToCartesian(newX, newY, x, y, size);
         if (mode == 2)
         {
-            x = x / size.x * 1280;
-            y = y / size.y * 720;
-            size = sf::Vector2i(1280, 720);
+            x = x / size.x * 640;
+            y = y / size.y * 480;
         }
-        sphericalToCartesian(newX, newY, x, y, size);
     }
+
+    else ball.visible = true;
+
     pawn.setPosition(x, y + offSet);
 }
 
@@ -164,16 +171,21 @@ void manageEvents(Event event, Window &window, Ball &ball, CircleShape &pawn, Cl
                     break;
 
                 case 12: /*Playstation*/
+                    cout << "mode : " << mode << endl;
+                    //Problem: the game detects the push twice
                     if (mode == 0)
                     {
                         mode = 3;
-                        level.rotateWorld();
+                        level.mode = 3;
                     }
                     else if (mode == 3)
                     {
                         mode = 0;
-                        level.switchToSphericalDisplay();
+                        level.mode = 0;
                     }
+                    level.rotateWorld();
+                    setPawnPosition(pawn, ball, level.referenceMap, level.rotation);
+                    break;
                 }
             break;
 
@@ -223,7 +235,6 @@ void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &
     {
         Text text("   Well done, you've finished the level! \nClick on any button to go to the next one", font, textSize);
         text.setFillColor(Color::White);
-        //TODO: center text
         sf::FloatRect textRect = text.getLocalBounds();
         text.setOrigin(textRect.left + textRect.width/2.0f,
                        textRect.top  + textRect.height/2.0f);
@@ -253,7 +264,6 @@ void levelComplete(RenderWindow &window, Level* &level, int &levelNumber, Ball &
     {
         Text text("   Well done, you've finished all the levels! \nClick on any button to go to exit the game", font, textSize);
         text.setFillColor(Color::White);
-        //TODO: center text
         sf::FloatRect textRect = text.getLocalBounds();
         text.setOrigin(textRect.left + textRect.width/2.0f,
                        textRect.top  + textRect.height/2.0f);
@@ -283,8 +293,6 @@ int main( int argc, char * argv[] )
     window.setJoystickThreshold(20);    //Need to adapt to the game controller
 
     font.loadFromFile("ARIALN.TTF");
-
-    //TODO: create a good map with photoshop (finished for the dev part only)
 
     Sprite sprite;
     Texture texture;
@@ -322,7 +330,6 @@ int main( int argc, char * argv[] )
     Ball ball(refSize.x / 2., refSize.y / 2., Eigen::Vector3f(0., 0., 0.));
 //    Ball ball(1300, 693, Eigen::Vector3f(20., 0., 0.));
     ball.z = level->zMap(ball.x, ball.y);
-    cout << ball.z << "!" << endl;
     ball.radius = 10. + ball.z / 20.;
     ball.to4K(mode);
 
@@ -346,13 +353,15 @@ int main( int argc, char * argv[] )
         texture.update(level->chromaMap);
 
         pawn.setRadius(ball.radius);
-        setPawnPosition(pawn, ball, level->chromaMap, level->rotation);
+        setPawnPosition(pawn, ball, level->referenceMap, level->rotation);
 
         if (isArrived(ball, level->goal)) levelComplete(window, level, levelNumber, ball);
 
         window.clear();
         window.draw(sprite);
-        window.draw(pawn);
+        if (ball.visible)
+            window.draw(pawn);
+
         window.display();
 
     }

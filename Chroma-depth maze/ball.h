@@ -11,6 +11,7 @@ class Ball
         float realRadius = 17.5;
         Eigen::Vector3f v; // Speed of the ball
         Eigen::Vector3f a; // Acceleration
+        bool visible = true;
         Ball()
         {
             x = 0.;

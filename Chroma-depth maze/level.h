@@ -94,7 +94,8 @@ public:
         buildSphereMap();
 
         if (mode > 1)
-            switchToSphericalDisplay();
+//            switchToSphericalDisplay();
+            rotateWorld();
     }
 
     ~Level(){}
@@ -102,7 +103,7 @@ public:
     void switchToSphericalDisplay()
     {
         sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
-        if (mode == 2) size = sf::Vector2i(1280, 720);
+        if (mode == 2) size = sf::Vector2i(640, 480);
         chromaMap.create(size.x, size.y, Color::Black);
 
         for (int i = size.x/4; i < 3*size.x/4; i++)
@@ -119,7 +120,7 @@ public:
 
     void rotateWorld()
     {
-        sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
+        sf::Vector2i size = (sf::Vector2i) referenceMap.getSize();
 
         if (mode <= 1)  //rectangular mode
         {
@@ -138,7 +139,7 @@ public:
         else   //sphere mode
         {
             sf::Vector2i newSize = size;
-            if (mode == 2) newSize = sf::Vector2i(1280, 720);
+            if (mode == 2) newSize = sf::Vector2i(640, 480);
             chromaMap.create(newSize.x, newSize.y, Color::Black);
 
             for (int i = newSize.x/4; i < 3*newSize.x/4; i++)
@@ -147,15 +148,14 @@ public:
                 {
                     float newI, newJ;
                     if (mode == 2)
-                        rotateCoord(rotation, newSize, i * size.x / newSize.x, j * size.y / newSize.y, newI, newJ);
+                        rotateCoord(rotation, size, i * size.x / newSize.x, j * size.y / newSize.y, newI, newJ);
                     else
-                        rotateCoord(rotation, newSize, i, j, newI, newJ);
+                        rotateCoord(rotation, size, i, j, newI, newJ);
 
                     float x, y;
                     sphericalToCartesian(i, j, x, y, newSize);
 
-                    if (x >= 0 && y >= 0 && x < newSize.x && y < newSize.y)
-                        chromaMap.setPixel((int) x, (int) y, referenceMap.getPixel((int) newI, (int) newJ));
+                    chromaMap.setPixel(x, y, referenceMap.getPixel((int) newI, (int) newJ));
                 }
             }
         }
@@ -237,7 +237,7 @@ public:
 
     void centerMap(Ball ball)
     {
-        sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
+        sf::Vector2i size = (sf::Vector2i) referenceMap.getSize();
 
         /* We use the opposite rotation */
         float dX = (float) ball.x - size.x / 2.;
