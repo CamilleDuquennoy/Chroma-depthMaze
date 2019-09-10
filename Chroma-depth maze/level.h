@@ -94,8 +94,7 @@ public:
         buildSphereMap();
 
         if (mode > 1)
-//            switchToSphericalDisplay();
-            rotateWorld();
+            switchToSphericalDisplay();
     }
 
     ~Level(){}
@@ -103,8 +102,9 @@ public:
     void switchToSphericalDisplay()
     {
         sf::Vector2i size = (sf::Vector2i) chromaMap.getSize();
-        if (mode == 2) size = sf::Vector2i(640, 480);
-        chromaMap.create(size.x, size.y, Color::Black);
+        sf::Vector2i newSize = size;
+        if (mode == 2) newSize = sf::Vector2i(640, 480);
+        chromaMap.create(newSize.x, newSize.y, Color::Black);
 
         for (int i = size.x/4; i < 3*size.x/4; i++)
         {
@@ -113,7 +113,10 @@ public:
                 float x, y;
                 sphericalToCartesian(i, j, x, y, size);
 
-                chromaMap.setPixel(x, y, referenceMap.getPixel(i * referenceMap.getSize().x / size.x, j * referenceMap.getSize().y / size.y));
+                if (mode == 2)
+                    chromaMap.setPixel(x / size.y * 480 - 100, y / size.y * 480, referenceMap.getPixel(i * referenceMap.getSize().x / size.x, j * referenceMap.getSize().y / size.y));
+                else
+                    chromaMap.setPixel(x, y, referenceMap.getPixel(i * referenceMap.getSize().x / size.x, j * referenceMap.getSize().y / size.y));
             }
         }
     }
@@ -142,20 +145,23 @@ public:
             if (mode == 2) newSize = sf::Vector2i(640, 480);
             chromaMap.create(newSize.x, newSize.y, Color::Black);
 
-            for (int i = newSize.x/4; i < 3*newSize.x/4; i++)
+            for (int i = size.x/4; i < 3*size.x/4; i++)
             {
-                for (int j = 0; j < newSize.y; j++)
+                for (int j = 0; j < size.y; j++)
                 {
                     float newI, newJ;
-                    if (mode == 2)
-                        rotateCoord(rotation, size, i * size.x / newSize.x, j * size.y / newSize.y, newI, newJ);
-                    else
+//                    if (mode == 2)
+//                        rotateCoord(rotation, size, i * size.x / newSize.x, j * size.y / newSize.y, newI, newJ);
+//                    else
                         rotateCoord(rotation, size, i, j, newI, newJ);
 
                     float x, y;
-                    sphericalToCartesian(i, j, x, y, newSize);
+                    sphericalToCartesian(i, j, x, y, size);
 
-                    chromaMap.setPixel(x, y, referenceMap.getPixel((int) newI, (int) newJ));
+                    if (mode == 2)
+                        chromaMap.setPixel(x / size.y * 480 - 100, y / size.y * 480, referenceMap.getPixel((int) newI, (int) newJ));
+                    else
+                        chromaMap.setPixel(x, y, referenceMap.getPixel((int) newI, (int) newJ));
                 }
             }
         }
