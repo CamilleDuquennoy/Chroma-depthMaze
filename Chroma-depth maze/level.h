@@ -60,6 +60,22 @@ void sphericalToCartesian(int i, int j, float &x, float &y, sf::Vector2i size)
     y = -cos(phi) * r + size.y / 2.;
 }
 
+void cartesianToSpherical(int i, int j, float &theta, float &phi, sf::Vector2i size)
+{
+    float r = min(size.x, size.y) / 2.;
+    float x = (float) (i - size.x / 2.) / r;
+    float y = (float) (-j + size.y / 2.) / r;
+
+    phi = acos(y);
+    if (sin(phi) != 0)
+        theta = asin(x / sin(phi));
+    else
+        theta = 0.;
+
+    theta = (theta + M_PI) * size.x / (2*M_PI);
+    phi *= size.y / M_PI;
+}
+
 class Level
 {
 public:
@@ -106,17 +122,21 @@ public:
         if (mode == 2) newSize = sf::Vector2i(640, 480);
         chromaMap.create(newSize.x, newSize.y, Color::Black);
 
-        for (int i = size.x/4; i < 3*size.x/4; i++)
+        for (int i = (newSize.x - newSize.y)/2; i < newSize.x + newSize.y/2; i++)
         {
-            for (int j = 0; j < size.y; j++)
+            for (int j = 0; j < newSize.y; j++)
             {
-                float x, y;
-                sphericalToCartesian(i, j, x, y, size);
+                float rho = min(newSize.x, newSize.y) / 2.;
+                if (pow((i - newSize.x / 2) / rho, 2) + pow((j - newSize.y / 2.) / rho, 2) <= 1.)
+                {
+                    float theta, phi;
+                    cartesianToSpherical(i, j, theta, phi, newSize);
 
-                if (mode == 2)
-                    chromaMap.setPixel(x / size.y * 480 - 100, y / size.y * 480, referenceMap.getPixel(i * referenceMap.getSize().x / size.x, j * referenceMap.getSize().y / size.y));
-                else
-                    chromaMap.setPixel(x, y, referenceMap.getPixel(i * referenceMap.getSize().x / size.x, j * referenceMap.getSize().y / size.y));
+                    if (mode == 2)
+                        chromaMap.setPixel(i, j, referenceMap.getPixel(theta * size.x / newSize.x, phi * size.y / newSize.y));
+                    else
+                        chromaMap.setPixel(i, j, referenceMap.getPixel(theta, phi));
+                }
             }
         }
     }
@@ -145,23 +165,24 @@ public:
             if (mode == 2) newSize = sf::Vector2i(640, 480);
             chromaMap.create(newSize.x, newSize.y, Color::Black);
 
-            for (int i = size.x/4; i < 3*size.x/4; i++)
+            for (int i = (newSize.x - newSize.y)/2; i < newSize.x + newSize.y/2; i++)
             {
-                for (int j = 0; j < size.y; j++)
+                for (int j = 0; j < newSize.y; j++)
                 {
-                    float newI, newJ;
-//                    if (mode == 2)
-//                        rotateCoord(rotation, size, i * size.x / newSize.x, j * size.y / newSize.y, newI, newJ);
-//                    else
-                        rotateCoord(rotation, size, i, j, newI, newJ);
+                    float rho = min(newSize.x, newSize.y) / 2.;
+                    if (pow((i - newSize.x / 2) / rho, 2) + pow((j - newSize.y / 2.) / rho, 2) <= 1.)
+                    {
+                        float theta, phi;
+                        cartesianToSpherical(i, j, theta, phi, newSize);
 
-                    float x, y;
-                    sphericalToCartesian(i, j, x, y, size);
+                        float newI, newJ;
+                        if (mode == 2)
+                            rotateCoord(rotation, size, theta * size.x / newSize.x, phi * size.y / newSize.y, newI, newJ);
+                        else
+                            rotateCoord(rotation, size, theta, phi, newI, newJ);
 
-                    if (mode == 2)
-                        chromaMap.setPixel(x / size.y * 480 - 100, y / size.y * 480, referenceMap.getPixel((int) newI, (int) newJ));
-                    else
-                        chromaMap.setPixel(x, y, referenceMap.getPixel((int) newI, (int) newJ));
+                        chromaMap.setPixel(i, j, referenceMap.getPixel(newI, newJ));
+                    }
                 }
             }
         }
