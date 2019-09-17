@@ -2,30 +2,26 @@
 <CodeBlocks_layout_file>
 	<FileVersion major="1" minor="0" />
 	<ActiveTarget name="Release" />
-	<File name="level.h" open="1" top="1" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="level.h" open="1" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="4956" topLine="199" />
+			<Cursor1 position="2167" topLine="0" />
 		</Cursor>
 		<Folding>
 			<Collapse line="22" />
-			<Collapse line="37" />
-			<Collapse line="102" />
-			<Collapse line="124" />
-			<Collapse line="170" />
-			<Collapse line="244" />
-			<Collapse line="261" />
-			<Collapse line="281" />
-			<Collapse line="292" />
 		</Folding>
 	</File>
-	<File name="main.cpp" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="-1" zoom_2="0">
+	<File name="ball.h" open="1" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="317" topLine="72" />
+			<Cursor1 position="1604" topLine="33" />
 		</Cursor>
 	</File>
-	<File name="ball.h" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="main.cpp" open="1" top="1" tabpos="2" split="0" active="1" splitpos="0" zoom_1="-1" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="315" topLine="10" />
+			<Cursor1 position="13496" topLine="291" />
 		</Cursor>
+		<Folding>
+			<Collapse line="27" />
+			<Collapse line="63" />
+		</Folding>
 	</File>
 </CodeBlocks_layout_file>
